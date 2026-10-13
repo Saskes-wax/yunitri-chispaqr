@@ -1,0 +1,24 @@
+# Dependencias
+node_modules/
+# Variables reales (nunca se suben; usar .env.example)
+.env
+.env.*
+!.env.example
+# Builds y logs
+dist/
+build/
+*.log
+npm-debug.log*
+# Datos locales de PostgreSQL / Docker
+pgdata/
+postgres-data/
+# Sistema y editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+# Temporales de Office y draw.io
+~$*
+*.bkp
+*.drawio.bkp
