@@ -9,6 +9,7 @@
 | [IDEA-DEL-SISTEMA.md](IDEA-DEL-SISTEMA.md) | Idea, flujo del pedido y mejoras propuestas |
 | [ADR.md](ADR.md) | Registro de decisiones técnicas (sección X) |
 | [tareas/](tareas/) | Qué hace y qué NO hace cada integrante |
+| [confirmaciones/](confirmaciones/) | Primer commit de cada uno: "leí el contrato" |
 | [actas/](actas/) | Actas de reunión (Yuri), con [plantilla](actas/_plantilla-acta.md) |
 
 La entrevista al recreo (Nicolás) va aquí como `entrevista-recreo.md` cuando esté hecha.
