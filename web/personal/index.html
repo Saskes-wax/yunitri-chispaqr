@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff8f0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a120d" media="(prefers-color-scheme: dark)">
+  <title>Ingreso del personal · Recreo Chispa</title>
+  <link rel="icon" href="/compartido/icono.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/compartido/estilos.css">
+  <link rel="stylesheet" href="/personal/login.css">
+  <script type="module" src="/personal/login.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#principal">Ir al contenido</a>
+  <main id="principal" class="login contenedor">
+    <header class="login__cabecera">
+      <p translate="no" class="marca login__marca">Recreo Chispa</p>
+      <h1>Ingreso del personal</h1>
+      <p class="login__bajada">Caja, cocina y mozos.</p>
+    </header>
+
+    <form id="formulario" class="tarjeta pila" novalidate>
+      <div class="campo">
+        <label for="nombreUsuario">Usuario</label>
+        <input id="nombreUsuario" name="nombreUsuario" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="40">
+      </div>
+      <div class="campo">
+        <label for="contrasena">Contraseña</label>
+        <input id="contrasena" name="contrasena" type="password" autocomplete="current-password" required maxlength="72">
+      </div>
+      <div id="aviso" hidden></div>
+      <button id="entrar" type="submit" class="boton boton--ancho">Entrar</button>
+    </form>
+  </main>
+</body>
+</html>
