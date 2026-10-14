@@ -1,5 +1,4 @@
 import { pool } from '../../db/pool.js';
-import { ZONA_HORARIA_NEGOCIO } from '../../shared/constantes.js';
 
 const CLAVE_BLOQUEO_CODIGO_PEDIDO = 717001;
 
@@ -55,15 +54,11 @@ export async function obtenerNumeroMesaDeComensal(cliente, idComensal) {
   return rows[0]?.numero ?? null;
 }
 
-// El bloqueo serializa la numeración: dos pedidos simultáneos nunca reciben el mismo número del día.
-export async function siguienteSecuenciaDelDia(cliente) {
+// La numeración no se reinicia, así el código nunca se repite y respeta el UNIQUE de codigo_pedido.
+// El bloqueo evita que dos pedidos simultáneos reciban el mismo número.
+export async function siguienteSecuencia(cliente) {
   await cliente.query('SELECT pg_advisory_xact_lock($1)', [CLAVE_BLOQUEO_CODIGO_PEDIDO]);
-  const { rows } = await cliente.query(
-    `SELECT count(*)::integer + 1 AS secuencia
-       FROM pedido
-      WHERE (fecha_creacion AT TIME ZONE $1)::date = (now() AT TIME ZONE $1)::date`,
-    [ZONA_HORARIA_NEGOCIO],
-  );
+  const { rows } = await cliente.query('SELECT count(*)::integer + 1 AS secuencia FROM pedido');
   return rows[0].secuencia;
 }
 
@@ -97,12 +92,8 @@ export async function obtenerDetalladoPorId(idPedido, cliente = pool) {
   return rows[0] ? aPedidoDetallado(rows[0]) : null;
 }
 
-// El código se repite entre días; se toma el más reciente.
 export async function obtenerDetalladoPorCodigo(codigoPedido) {
-  const { rows } = await pool.query(
-    `${SELECT_PEDIDO_DETALLADO} WHERE p.codigo_pedido = $1 ORDER BY p.fecha_creacion DESC LIMIT 1`,
-    [codigoPedido],
-  );
+  const { rows } = await pool.query(`${SELECT_PEDIDO_DETALLADO} WHERE p.codigo_pedido = $1`, [codigoPedido]);
   return rows[0] ? aPedidoDetallado(rows[0]) : null;
 }
 

@@ -28,7 +28,7 @@ test('un pedido entregado o cancelado ya no cambia', () => {
   assert.throws(() => validarTransicion('CANCELADO', 'PAGADO'), Conflicto);
 });
 
-test('genera el código con la mesa y la secuencia del día', () => {
+test('genera el código con la mesa y el número de pedido', () => {
   assert.equal(generarCodigoPedido(5, 17), 'M05-017');
   assert.equal(generarCodigoPedido(12, 1), 'M12-001');
   assert.equal(generarCodigoPedido(3, 1234), 'M03-1234');

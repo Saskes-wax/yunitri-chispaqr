@@ -27,7 +27,7 @@ export async function crearPedido({ idComensal, lineas: lineasSolicitadas }) {
     if (numeroMesa === null) {
       throw new NoEncontrado('Comensal');
     }
-    const secuencia = await pedidosRepo.siguienteSecuenciaDelDia(cliente);
+    const secuencia = await pedidosRepo.siguienteSecuencia(cliente);
 
     const id = await pedidosRepo.insertarPedido(cliente, {
       idComensal,

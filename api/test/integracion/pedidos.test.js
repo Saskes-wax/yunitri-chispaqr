@@ -41,13 +41,22 @@ describe('POST /pedidos (comensal)', () => {
     assert.equal(pedido.idComensal, undefined);
   });
 
-  test('la secuencia del código es del día y no se repite entre mesas', async () => {
+  test('la numeración es única para todo el recreo, sin importar la mesa', async () => {
     const tokenMesa5 = await registrarComensal();
     const tokenMesa7 = await registrarComensal(TOKEN_MESA_7, 'Juan');
     const primero = await crearPedido(tokenMesa5);
     const segundo = await crearPedido(tokenMesa7);
     assert.equal(primero.codigoPedido, 'M05-001');
     assert.equal(segundo.codigoPedido, 'M07-002');
+  });
+
+  test('la numeración continúa al día siguiente, así el código nunca se repite', async () => {
+    const token = await registrarComensal();
+    const deAyer = await crearPedido(token);
+    await pool.query(`UPDATE pedido SET fecha_creacion = now() - interval '1 day' WHERE id_pedido = $1`, [deAyer.idPedido]);
+    const deHoy = await crearPedido(token);
+    assert.equal(deAyer.codigoPedido, 'M05-001');
+    assert.equal(deHoy.codigoPedido, 'M05-002');
   });
 
   test('pedidos simultáneos reciben códigos distintos', async () => {

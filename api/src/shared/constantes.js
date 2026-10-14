@@ -43,7 +43,6 @@ export const ESTADOS_QUE_PUEDE_FIJAR = Object.freeze({
   MOZO: [ESTADOS_PEDIDO.ENTREGADO],
 });
 
-export const ZONA_HORARIA_NEGOCIO = 'America/Lima';
 export const MINUTOS_PARA_CANCELAR = 20;
 export const EXPIRACION_TOKEN_COMENSAL = '6h';
 export const COSTO_BCRYPT = 12;

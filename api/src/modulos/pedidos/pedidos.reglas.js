@@ -9,9 +9,9 @@ export function validarTransicion(estadoActual, estadoNuevo) {
   }
 }
 
-export function generarCodigoPedido(numeroMesa, secuenciaDelDia) {
+export function generarCodigoPedido(numeroMesa, numeroDePedido) {
   const mesa = String(numeroMesa).padStart(2, '0');
-  const secuencia = String(secuenciaDelDia).padStart(3, '0');
+  const secuencia = String(numeroDePedido).padStart(3, '0');
   return `M${mesa}-${secuencia}`;
 }
 
