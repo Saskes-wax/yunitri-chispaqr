@@ -1,4 +1,5 @@
 import './entorno.js';
+import { readFileSync } from 'node:fs';
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import { crearApp } from '../src/app.js';
@@ -19,13 +20,26 @@ const TABLAS = [
   'comensal', 'sesion_mesa', 'mesa', 'usuario', 'rol',
 ];
 
+// Las pruebas usan el esquema y los triggers reales de database/, así la API y la BD no se desalinean.
+const SCRIPTS_DE_ESQUEMA = ['01_esquema.sql', '02_triggers.sql'];
+let esquemaCargado = false;
+
+async function cargarEsquema() {
+  await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
+  for (const script of SCRIPTS_DE_ESQUEMA) {
+    await pool.query(readFileSync(new URL(`../../database/${script}`, import.meta.url), 'utf8'));
+  }
+  esquemaCargado = true;
+}
+
 export async function reiniciarBaseDeDatos() {
+  if (!esquemaCargado) await cargarEsquema();
   await pool.query(`TRUNCATE ${TABLAS.join(', ')} RESTART IDENTITY CASCADE`);
 
   const hash = await bcrypt.hash(CONTRASENA_PRUEBA, 4);
   await pool.query(`INSERT INTO rol (nombre) VALUES ('ADMINISTRADOR'), ('CAJERO'), ('COCINA'), ('MOZO')`);
   await pool.query(
-    `INSERT INTO usuario (id_rol, nombre_usuario, nombre_completo, contrasena_hash, activo) VALUES
+    `INSERT INTO usuario (id_rol, nombre_usuario, nombre, contrasena_hash, activo) VALUES
        (1, 'admin', 'Admin', $1, true),
        (2, 'caja', 'Caja', $1, true),
        (3, 'cocina', 'Cocina', $1, true),
