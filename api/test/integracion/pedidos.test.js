@@ -197,7 +197,7 @@ describe('POST /pedidos/{id}/pago (caja)', () => {
 });
 
 describe('PATCH /pedidos/{id}/estado', () => {
-  test('flujo completo: caja cobra, cocina prepara, mozo entrega y el trigger guarda el historial', async () => {
+  test('flujo completo: caja cobra, cocina prepara, mozo entrega y el trigger guarda quién hizo cada cambio', async () => {
     const pedido = await crearPedido(await registrarComensal());
     await pagar(await iniciarSesion('caja'), pedido.idPedido).expect(201);
     const tokenCocina = await iniciarSesion('cocina');
@@ -207,10 +207,17 @@ describe('PATCH /pedidos/{id}/estado', () => {
     assert.equal(entregado.body.estado, 'ENTREGADO');
 
     const { rows } = await pool.query(
-      'SELECT estado_nuevo FROM historial_estado_pedido WHERE id_pedido = $1 ORDER BY id_historial_estado_pedido',
+      `SELECT h.estado_nuevo, u.nombre_usuario
+         FROM historial_estado_pedido h
+         LEFT JOIN usuario u ON u.id_usuario = h.id_usuario
+        WHERE h.id_pedido = $1
+        ORDER BY h.id_historial_estado_pedido`,
       [pedido.idPedido],
     );
-    assert.deepEqual(rows.map((fila) => fila.estado_nuevo), ['PAGADO', 'EN_PREPARACION', 'LISTO', 'ENTREGADO']);
+    assert.deepEqual(
+      rows.map((fila) => [fila.estado_nuevo, fila.nombre_usuario]),
+      [['PENDIENTE_PAGO', null], ['PAGADO', 'caja'], ['EN_PREPARACION', 'cocina'], ['LISTO', 'cocina'], ['ENTREGADO', 'mozo']],
+    );
   });
 
   test('cocina no puede preparar un pedido sin pagar (409)', async () => {
