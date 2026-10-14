@@ -68,7 +68,7 @@ docker compose ps         # db, api y web deben figurar como "healthy" o "runnin
 | Comensal | la dirección del QR de cada mesa: `http://<servidor>:8080/m/{token_qr}` |
 | Salud de la API | http://localhost:8080/api/v1/health |
 
-Los usuarios de prueba (uno por rol) y las mesas son los que carga `database/03_datos_prueba.sql`.
+Los usuarios de prueba (`admin`, `cajero`, `cocina` y `mozo`, contraseña `chispa123`), las mesas y la carta de ejemplo los carga `database/03_datos_prueba.sql`.
 
 Para imprimir los QR de las mesas, desde `api/`: `npm install` y luego `npm run qr` (detalle en [`api/README.md`](api/README.md)). Para trabajar sin Docker, revisa [`api/README.md`](api/README.md) y [`web/README.md`](web/README.md).
 
