@@ -3,7 +3,8 @@ import { Conflicto, ValidacionFallida } from '../shared/errores.js';
 const MENSAJES_POR_RESTRICCION = Object.freeze({
   pago_id_pedido_key: 'Este pedido ya fue pagado',
   mesa_numero_key: 'Ya existe una mesa con ese número',
-  usuario_nombre_usuario_key: 'Ese nombre de usuario ya existe',
+  usuario_username_key: 'Ese nombre de usuario ya existe',
+  producto_id_categoria_nombre_key: 'Ya existe un producto con ese nombre en la categoría',
 });
 
 const TRADUCCION_POR_CODIGO = Object.freeze({

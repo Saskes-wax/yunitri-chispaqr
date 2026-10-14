@@ -32,6 +32,12 @@ export class NoEncontrado extends ErrorApp {
   }
 }
 
+export class Bloqueado extends ErrorApp {
+  constructor(mensaje) {
+    super(429, 'USUARIO_BLOQUEADO', mensaje);
+  }
+}
+
 export class Conflicto extends ErrorApp {
   constructor(codigo, mensaje) {
     super(409, codigo, mensaje);

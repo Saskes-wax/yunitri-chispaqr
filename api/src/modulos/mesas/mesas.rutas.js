@@ -4,15 +4,22 @@ import { autorizar } from '../../middlewares/autorizar.js';
 import { limiteComensal } from '../../middlewares/limites.js';
 import { validar } from '../../middlewares/validar.js';
 import { ROLES } from '../../shared/constantes.js';
-import { obtenerMesaEsquema, regenerarQrEsquema, registrarComensalEsquema } from './mesas.esquemas.js';
+import {
+  crearMesaEsquema,
+  obtenerMesaEsquema,
+  regenerarQrEsquema,
+  registrarComensalEsquema,
+} from './mesas.esquemas.js';
 import * as controlador from './mesas.controlador.js';
 
 export const rutasMesas = Router();
 
-rutasMesas.get('/:tokenQr', validar(obtenerMesaEsquema), controlador.obtenerPorToken);
+rutasMesas.post('/', autenticarPersonal, autorizar(ROLES.ADMINISTRADOR), validar(crearMesaEsquema), controlador.crear);
+
+rutasMesas.get('/:codigoQr', validar(obtenerMesaEsquema), controlador.obtenerPorCodigoQr);
 
 rutasMesas.post(
-  '/:tokenQr/comensales',
+  '/:codigoQr/comensales',
   limiteComensal,
   validar(registrarComensalEsquema),
   controlador.registrarComensal,

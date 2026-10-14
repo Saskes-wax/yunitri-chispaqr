@@ -4,13 +4,12 @@ import { fileURLToPath } from 'node:url';
 import QRCode from 'qrcode';
 import { pool } from '../src/db/pool.js';
 import { listarMesas } from '../src/modulos/mesas/mesas.servicio.js';
-import { ESTADOS_MESA } from '../src/shared/constantes.js';
 
 const CARPETA_SALIDA = new URL('../qr-generados/', import.meta.url);
 const URL_PUBLICA = process.env.PUBLIC_BASE_URL;
 
-function urlDeMesa(tokenQr) {
-  return `${URL_PUBLICA.replace(/\/$/, '')}/m/${tokenQr}`;
+function urlDeMesa(codigoQr) {
+  return `${URL_PUBLICA.replace(/\/$/, '')}/m/${codigoQr}`;
 }
 
 function tarjetaHtml(numero, archivo) {
@@ -48,11 +47,11 @@ async function generar() {
   }
   await mkdir(CARPETA_SALIDA, { recursive: true });
 
-  const mesas = (await listarMesas()).filter((mesa) => mesa.estado !== ESTADOS_MESA.INACTIVA);
+  const mesas = (await listarMesas()).filter((mesa) => mesa.activa);
   const tarjetas = [];
   for (const mesa of mesas) {
     const archivo = `mesa-${String(mesa.numero).padStart(2, '0')}.png`;
-    await QRCode.toFile(fileURLToPath(new URL(archivo, CARPETA_SALIDA)), urlDeMesa(mesa.tokenQr), {
+    await QRCode.toFile(fileURLToPath(new URL(archivo, CARPETA_SALIDA)), urlDeMesa(mesa.codigoQr), {
       width: 600,
       margin: 2,
       errorCorrectionLevel: 'M',

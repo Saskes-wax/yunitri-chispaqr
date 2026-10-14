@@ -14,6 +14,13 @@ export async function crearProducto(req, res) {
   res.status(201).json(producto);
 }
 
+export async function actualizarProducto(req, res) {
+  const { idProducto } = req.validado.params;
+  const producto = await cartaServicio.actualizarProducto(idProducto, req.validado.body);
+  req.log.info({ idProducto, campos: Object.keys(req.validado.body), idUsuario: req.usuario.idUsuario }, 'producto actualizado');
+  res.json(producto);
+}
+
 export async function cambiarDisponibilidad(req, res) {
   const { idProducto } = req.validado.params;
   const producto = await cartaServicio.cambiarDisponibilidad(idProducto, req.validado.body.disponible);
