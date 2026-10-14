@@ -9,5 +9,5 @@ export async function registrarPago({ idPedido, metodo, idUsuario }) {
     const pago = await pagosRepo.insertarPago(cliente, { idPedido, idUsuario, metodo, monto: pedido.total });
     const pagado = await marcarComoPagado(cliente, pedido);
     return { ...pago, idPedido, codigoPedido: pagado.codigoPedido, estado: pagado.estado };
-  });
+  }, { idUsuario });
 }

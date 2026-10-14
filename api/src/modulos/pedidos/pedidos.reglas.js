@@ -1,6 +1,5 @@
 import { Conflicto } from '../../shared/errores.js';
 import { TRANSICIONES_PEDIDO } from '../../shared/constantes.js';
-import { aCentimos, aSoles } from '../../shared/dinero.js';
 
 export function validarTransicion(estadoActual, estadoNuevo) {
   const permitidos = TRANSICIONES_PEDIDO[estadoActual] ?? [];
@@ -15,20 +14,13 @@ export function generarCodigoPedido(numeroMesa, numeroDePedido) {
   return `M${mesa}-${secuencia}`;
 }
 
-// RN-1: precios y total salen del servidor, nunca del cliente.
-export function calcularLineasYTotal(lineasSolicitadas, productosPorId) {
-  let totalCentimos = 0;
-  const lineas = lineasSolicitadas.map(({ idProducto, cantidad, nota }) => {
-    const precioCentimos = aCentimos(productosPorId.get(idProducto).precio);
-    const subtotalCentimos = precioCentimos * cantidad;
-    totalCentimos += subtotalCentimos;
-    return {
-      idProducto,
-      cantidad,
-      nota: nota || null,
-      precioUnitario: aSoles(precioCentimos),
-      subtotal: aSoles(subtotalCentimos),
-    };
-  });
-  return { lineas, total: aSoles(totalCentimos) };
+// RN-1: el precio sale de la carta vigente, nunca del cliente.
+// El subtotal (columna generada) y el total (vista v_pedido_total) los calcula la base de datos.
+export function armarLineas(lineasSolicitadas, productosPorId) {
+  return lineasSolicitadas.map(({ idProducto, cantidad, nota }) => ({
+    idProducto,
+    cantidad,
+    nota: nota || null,
+    precioUnitario: productosPorId.get(idProducto).precio,
+  }));
 }
