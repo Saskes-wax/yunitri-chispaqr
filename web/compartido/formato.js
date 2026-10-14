@@ -2,10 +2,10 @@ const SOLES = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN
 const HORA = new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' });
 
 export const ETIQUETAS_ESTADO = Object.freeze({
-  PENDIENTE_PAGO: 'Por pagar',
+  PENDIENTE_PAGO: 'Pendiente de pago',
   PAGADO: 'Pagado',
   EN_PREPARACION: 'En preparación',
-  LISTO: 'Listo',
+  LISTO: 'Listo para servir',
   ENTREGADO: 'Entregado',
   CANCELADO: 'Cancelado',
 });

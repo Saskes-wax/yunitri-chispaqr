@@ -54,19 +54,16 @@ export function cerrarSesionPersonal() {
 }
 
 // Comensal: localStorage por mesa, porque el navegador del celular suele descartar pestañas.
-export function leerSesionComensal(tokenQr) {
-  const sesion = leerJson(localStorage, PREFIJO_COMENSAL + tokenQr);
-  if (!sesion?.token || tokenVencido(sesion.token)) {
-    borrar(localStorage, PREFIJO_COMENSAL + tokenQr);
-    return null;
-  }
-  return sesion;
+// El carrito y los pedidos se conservan aunque el token venza; solo se vuelve a pedir el nombre.
+const DATOS_COMENSAL_VACIOS = Object.freeze({ token: null, nombre: '', codigos: [], carrito: {}, claveEnvio: null });
+
+export function leerDatosComensal(codigoQr) {
+  const guardado = leerJson(localStorage, PREFIJO_COMENSAL + codigoQr) ?? {};
+  const datos = { ...structuredClone(DATOS_COMENSAL_VACIOS), ...guardado };
+  if (datos.token && tokenVencido(datos.token)) datos.token = null;
+  return datos;
 }
 
-export function guardarSesionComensal(tokenQr, sesion) {
-  escribirJson(localStorage, PREFIJO_COMENSAL + tokenQr, sesion);
-}
-
-export function borrarSesionComensal(tokenQr) {
-  borrar(localStorage, PREFIJO_COMENSAL + tokenQr);
+export function guardarDatosComensal(codigoQr, datos) {
+  escribirJson(localStorage, PREFIJO_COMENSAL + codigoQr, datos);
 }

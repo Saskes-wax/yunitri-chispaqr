@@ -56,7 +56,7 @@ async function cargarPedidos() {
     $('lista-preparando'),
     $('contador-preparando'),
     datos.filter((pedido) => pedido.estado === 'EN_PREPARACION'),
-    (pedido) => botonEstado(pedido, 'LISTO', 'Listo para entregar', 'boton--exito'),
+    (pedido) => botonEstado(pedido, 'LISTO', 'Listo para servir', 'boton--exito'),
     'Nada en preparación.',
   );
 }

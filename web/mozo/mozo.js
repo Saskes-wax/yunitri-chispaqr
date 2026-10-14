@@ -22,7 +22,7 @@ function botonEntregado(pedido) {
   const boton = el(
     'button',
     { type: 'button', class: 'boton boton--exito', 'data-clave': `entregar-${pedido.idPedido}` },
-    `Entregado en mesa ${pedido.numeroMesa}`,
+    'Entregado',
   );
   boton.addEventListener('click', () => marcarEntregado(pedido, boton));
   return boton;
