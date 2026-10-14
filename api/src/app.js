@@ -6,6 +6,7 @@ import { logger } from './shared/logger.js';
 import { manejadorErrores, rutaNoEncontrada } from './middlewares/manejadorErrores.js';
 import { rutasSalud } from './modulos/salud/salud.rutas.js';
 import { rutasAuth } from './modulos/auth/auth.rutas.js';
+import { rutasMesas } from './modulos/mesas/mesas.rutas.js';
 
 const ID_PETICION_VALIDO = /^[\w-]{8,64}$/;
 
@@ -28,6 +29,7 @@ export function crearApp() {
   const v1 = express.Router();
   v1.use('/health', rutasSalud);
   v1.use('/auth', rutasAuth);
+  v1.use('/mesas', rutasMesas);
 
   app.use('/api/v1', v1);
   app.use(rutaNoEncontrada);
