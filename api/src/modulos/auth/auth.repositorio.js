@@ -12,7 +12,7 @@ function aUsuario(fila) {
 }
 
 const SELECT_USUARIO = `
-  SELECT u.id_usuario, u.nombre_usuario, u.nombre_completo, u.contrasena_hash, u.activo, r.nombre AS rol
+  SELECT u.id_usuario, u.nombre_usuario, u.nombre AS nombre_completo, u.contrasena_hash, u.activo, r.nombre AS rol
     FROM usuario u
     JOIN rol r ON r.id_rol = u.id_rol`;
 

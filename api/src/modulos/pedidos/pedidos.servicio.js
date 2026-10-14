@@ -8,7 +8,7 @@ import {
   ROLES,
 } from '../../shared/constantes.js';
 import { obtenerProductosParaPedido } from '../carta/carta.servicio.js';
-import { calcularLineasYTotal, generarCodigoPedido, validarTransicion } from './pedidos.reglas.js';
+import { armarLineas, generarCodigoPedido, validarTransicion } from './pedidos.reglas.js';
 import * as pedidosRepo from './pedidos.repositorio.js';
 
 const ROLES_QUE_BUSCAN_POR_CODIGO = [ROLES.CAJERO, ROLES.ADMINISTRADOR];
@@ -21,7 +21,7 @@ export async function crearPedido({ idComensal, lineas: lineasSolicitadas }) {
   const idPedido = await conTransaccion(async (cliente) => {
     const idsProducto = [...new Set(lineasSolicitadas.map((linea) => linea.idProducto))];
     const productosPorId = await obtenerProductosParaPedido(cliente, idsProducto);
-    const { lineas, total } = calcularLineasYTotal(lineasSolicitadas, productosPorId);
+    const lineas = armarLineas(lineasSolicitadas, productosPorId);
 
     const numeroMesa = await pedidosRepo.obtenerNumeroMesaDeComensal(cliente, idComensal);
     if (numeroMesa === null) {
@@ -32,7 +32,6 @@ export async function crearPedido({ idComensal, lineas: lineasSolicitadas }) {
     const id = await pedidosRepo.insertarPedido(cliente, {
       idComensal,
       codigoPedido: generarCodigoPedido(numeroMesa, secuencia),
-      total,
       estado: ESTADOS_PEDIDO.PENDIENTE_PAGO,
     });
     await pedidosRepo.insertarDetalles(cliente, id, lineas);
@@ -64,7 +63,7 @@ export async function listarPorEstados({ estados, rol }) {
   return pedidos.map(aVistaPublica);
 }
 
-export async function cambiarEstado({ idPedido, estadoNuevo, rol }) {
+export async function cambiarEstado({ idPedido, estadoNuevo, rol, idUsuario }) {
   if (!(ESTADOS_QUE_PUEDE_FIJAR[rol] ?? []).includes(estadoNuevo)) {
     throw new Prohibido(`Tu rol no puede marcar un pedido como ${estadoNuevo}`);
   }
@@ -75,11 +74,10 @@ export async function cambiarEstado({ idPedido, estadoNuevo, rol }) {
   }
   validarTransicion(pedido.estado, estadoNuevo);
 
-  const actualizado = await pedidosRepo.actualizarEstadoSiSigueEn({
-    idPedido,
-    estadoEsperado: pedido.estado,
-    estadoNuevo,
-  });
+  const actualizado = await conTransaccion(
+    (cliente) => pedidosRepo.actualizarEstadoSiSigueEn({ idPedido, estadoEsperado: pedido.estado, estadoNuevo }, cliente),
+    { idUsuario },
+  );
   if (!actualizado) {
     throw new Conflicto('PEDIDO_MODIFICADO', 'El pedido cambió de estado. Actualiza la pantalla.');
   }

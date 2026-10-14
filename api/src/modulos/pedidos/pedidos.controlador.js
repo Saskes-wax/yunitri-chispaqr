@@ -31,6 +31,7 @@ export async function cambiarEstado(req, res) {
     idPedido: req.validado.params.idPedido,
     estadoNuevo: req.validado.body.estado,
     rol: req.usuario.rol,
+    idUsuario: req.usuario.idUsuario,
   });
   req.log.info(
     { idPedido: pedido.idPedido, estado: pedido.estado, idUsuario: req.usuario.idUsuario },

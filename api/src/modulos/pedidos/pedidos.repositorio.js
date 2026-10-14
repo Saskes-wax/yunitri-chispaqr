@@ -3,7 +3,7 @@ import { pool } from '../../db/pool.js';
 const CLAVE_BLOQUEO_CODIGO_PEDIDO = 717001;
 
 const SELECT_PEDIDO_DETALLADO = `
-  SELECT p.id_pedido, p.id_comensal, p.codigo_pedido, p.estado, p.total, p.fecha_creacion,
+  SELECT p.id_pedido, p.id_comensal, p.codigo_pedido, p.estado, t.total, p.fecha_creacion,
          c.nombre_alias, m.numero AS numero_mesa, pg.fecha_pago,
          COALESCE((
            SELECT json_agg(json_build_object(
@@ -18,6 +18,7 @@ const SELECT_PEDIDO_DETALLADO = `
             WHERE d.id_pedido = p.id_pedido
          ), '[]'::json) AS lineas
     FROM pedido p
+    JOIN v_pedido_total t ON t.id_pedido = p.id_pedido
     JOIN comensal c ON c.id_comensal = p.id_comensal
     JOIN sesion_mesa s ON s.id_sesion_mesa = c.id_sesion_mesa
     JOIN mesa m ON m.id_mesa = s.id_mesa
@@ -37,6 +38,10 @@ function aPedidoDetallado(fila) {
     lineas: fila.lineas,
   };
 }
+
+// El total vive en la vista v_pedido_total (Iván, sección VIII); FOR UPDATE OF p bloquea solo el pedido.
+const COLUMNAS_RESUMEN = `p.id_pedido, p.codigo_pedido, p.estado,
+  (SELECT total FROM v_pedido_total WHERE id_pedido = p.id_pedido) AS total`;
 
 function aPedidoResumen(fila) {
   return { idPedido: fila.id_pedido, codigoPedido: fila.codigo_pedido, estado: fila.estado, total: fila.total };
@@ -62,26 +67,25 @@ export async function siguienteSecuencia(cliente) {
   return rows[0].secuencia;
 }
 
-export async function insertarPedido(cliente, { idComensal, codigoPedido, total, estado }) {
+export async function insertarPedido(cliente, { idComensal, codigoPedido, estado }) {
   const { rows } = await cliente.query(
-    `INSERT INTO pedido (id_comensal, codigo_pedido, estado, total)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO pedido (id_comensal, codigo_pedido, estado)
+     VALUES ($1, $2, $3)
      RETURNING id_pedido`,
-    [idComensal, codigoPedido, estado, total],
+    [idComensal, codigoPedido, estado],
   );
   return rows[0].id_pedido;
 }
 
 export async function insertarDetalles(cliente, idPedido, lineas) {
   await cliente.query(
-    `INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario, subtotal, nota)
-     SELECT $1, * FROM unnest($2::integer[], $3::integer[], $4::numeric[], $5::numeric[], $6::varchar[])`,
+    `INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario, nota)
+     SELECT $1, * FROM unnest($2::integer[], $3::integer[], $4::numeric[], $5::text[])`,
     [
       idPedido,
       lineas.map((linea) => linea.idProducto),
       lineas.map((linea) => linea.cantidad),
       lineas.map((linea) => linea.precioUnitario),
-      lineas.map((linea) => linea.subtotal),
       lineas.map((linea) => linea.nota),
     ],
   );
@@ -110,7 +114,7 @@ export async function listarPorEstados(estados, limite) {
 
 export async function obtenerResumenPorId(idPedido) {
   const { rows } = await pool.query(
-    'SELECT id_pedido, codigo_pedido, estado, total FROM pedido WHERE id_pedido = $1',
+    `SELECT ${COLUMNAS_RESUMEN} FROM pedido p WHERE p.id_pedido = $1`,
     [idPedido],
   );
   return rows[0] ? aPedidoResumen(rows[0]) : null;
@@ -118,7 +122,7 @@ export async function obtenerResumenPorId(idPedido) {
 
 export async function bloquearPorId(cliente, idPedido) {
   const { rows } = await cliente.query(
-    'SELECT id_pedido, codigo_pedido, estado, total FROM pedido WHERE id_pedido = $1 FOR UPDATE',
+    `SELECT ${COLUMNAS_RESUMEN} FROM pedido p WHERE p.id_pedido = $1 FOR UPDATE OF p`,
     [idPedido],
   );
   return rows[0] ? aPedidoResumen(rows[0]) : null;
@@ -127,9 +131,9 @@ export async function bloquearPorId(cliente, idPedido) {
 // Si otro usuario ya cambió el estado, no afecta filas y el servicio responde 409.
 export async function actualizarEstadoSiSigueEn({ idPedido, estadoEsperado, estadoNuevo }, cliente = pool) {
   const { rows } = await cliente.query(
-    `UPDATE pedido SET estado = $3
-      WHERE id_pedido = $1 AND estado = $2
-      RETURNING id_pedido, codigo_pedido, estado, total`,
+    `UPDATE pedido p SET estado = $3
+      WHERE p.id_pedido = $1 AND p.estado = $2
+      RETURNING ${COLUMNAS_RESUMEN}`,
     [idPedido, estadoEsperado, estadoNuevo],
   );
   return rows[0] ? aPedidoResumen(rows[0]) : null;
