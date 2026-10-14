@@ -1,0 +1,24 @@
+.login {
+  display: grid;
+  align-content: center;
+  gap: var(--espacio-5);
+  min-height: 100dvh;
+  max-width: 26rem;
+}
+
+.login__cabecera {
+  display: grid;
+  gap: var(--espacio-1);
+}
+
+.login__marca {
+  font-size: var(--texto-l);
+}
+
+.login__cabecera h1 {
+  font-size: var(--texto-xl);
+}
+
+.login__bajada {
+  color: var(--texto-suave);
+}

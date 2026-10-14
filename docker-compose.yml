@@ -1,6 +1,6 @@
 # ChispaQR — Docker Compose (3 servicios: db, api, web)
 # BORRADOR INICIAL. Yandel escribe la versión final documentada (sección VI, Hito 2);
-# Triztan la mantiene funcionando. El servicio web se activa cuando exista su Dockerfile.
+# Triztan la mantiene funcionando.
 
 services:
   db:
@@ -33,11 +33,12 @@ services:
     ports:
       - "${API_PORT}:3000"
 
-  # web:
-  #   build: ./web
-  #   depends_on: [api]
-  #   ports:
-  #     - "${WEB_PORT}:80"
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "${WEB_PORT}:80"
 
 volumes:
   pgdata:

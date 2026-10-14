@@ -1,0 +1,99 @@
+/* Pizarra oscura de alto contraste, pensada para leerse a distancia en una tablet. */
+.pizarra {
+  --fondo: #14100c;
+  --superficie: #221a13;
+  --superficie-2: #2c2219;
+  --texto: #fdf6ee;
+  --texto-suave: #d4c2b2;
+  --borde: #4a3829;
+  --brasa: #fb923c;
+  --brasa-fuerte: #fdba74;
+  --brasa-suave: #45240e;
+  --sobre-brasa: #14100c;
+  --exito: #4ade80;
+  --exito-suave: #12341f;
+  --aviso: #facc15;
+  --aviso-suave: #3a2f0b;
+  --peligro: #f87171;
+  --peligro-suave: #3f1515;
+  --foco: #93c5fd;
+  --sombra: none;
+  color-scheme: dark;
+  font-size: 1.125rem;
+}
+
+.tablero--sin-margen {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pizarra .pedido__codigo {
+  font-size: var(--texto-xxl);
+}
+
+.pizarra .pedido__mesa {
+  font-size: var(--texto-l);
+}
+
+.pizarra .lineas {
+  font-size: var(--texto-l);
+}
+
+.pizarra .lineas .nota {
+  font-size: var(--texto-m);
+}
+
+.agotados summary {
+  min-height: var(--toque);
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: var(--texto-l);
+  cursor: pointer;
+}
+
+.agotados__ayuda {
+  margin-block: var(--espacio-2) var(--espacio-4);
+  color: var(--texto-suave);
+}
+
+.agotados__lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--espacio-2);
+}
+
+.disponibilidad {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  min-height: var(--toque);
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 2px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--superficie-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.disponibilidad:hover {
+  border-color: var(--texto-suave);
+}
+
+.disponibilidad[aria-pressed="true"] {
+  border-color: var(--peligro);
+  background: var(--peligro-suave);
+}
+
+.disponibilidad__estado {
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  color: var(--exito);
+}
+
+.disponibilidad[aria-pressed="true"] .disponibilidad__estado {
+  color: var(--peligro);
+}

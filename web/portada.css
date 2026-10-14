@@ -1,0 +1,16 @@
+.portada {
+  display: grid;
+  align-content: center;
+  gap: var(--espacio-5);
+  min-height: 100dvh;
+  text-align: center;
+}
+
+.portada h1 {
+  font-size: var(--texto-xxl);
+}
+
+.portada p {
+  color: var(--texto-suave);
+  font-size: var(--texto-m);
+}
