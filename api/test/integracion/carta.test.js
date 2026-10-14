@@ -60,6 +60,28 @@ describe('PATCH /productos/{id}/disponibilidad', () => {
   });
 });
 
+describe('PATCH /productos/{id} (RF-04)', () => {
+  test('el administrador cambia el precio y la carta lo muestra al instante', async () => {
+    const token = await iniciarSesion('admin');
+    const respuesta = await api()
+      .patch(`/api/v1/productos/${PRODUCTO.TRUCHA}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ precio: '27.50' })
+      .expect(200);
+    assert.equal(respuesta.body.precio, '27.50');
+    const carta = await api().get('/api/v1/productos').expect(200);
+    assert.equal(carta.body.datos.find((producto) => producto.idProducto === PRODUCTO.TRUCHA).precio, '27.50');
+  });
+
+  test('responde 400 sin cambios, 404 si no existe y 403 a cocina', async () => {
+    const tokenAdmin = await iniciarSesion('admin');
+    await api().patch(`/api/v1/productos/${PRODUCTO.TRUCHA}`).set('Authorization', `Bearer ${tokenAdmin}`).send({}).expect(400);
+    await api().patch('/api/v1/productos/999').set('Authorization', `Bearer ${tokenAdmin}`).send({ precio: '1.00' }).expect(404);
+    const tokenCocina = await iniciarSesion('cocina');
+    await api().patch(`/api/v1/productos/${PRODUCTO.TRUCHA}`).set('Authorization', `Bearer ${tokenCocina}`).send({ precio: '1.00' }).expect(403);
+  });
+});
+
 describe('POST /productos', () => {
   test('el administrador agrega un plato a la carta', async () => {
     const token = await iniciarSesion('admin');
