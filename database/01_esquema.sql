@@ -1,5 +1,5 @@
--- ChispaQR - esquema PostgreSQL 16 (Hito 1)
--- Campos marcados "por confirmar" dependen de la entrevista o de Triztan.
+-- ChispaQR - esquema PostgreSQL 16 (v2, contrato v1.2)
+-- Campos marcados "por confirmar" dependen de la entrevista.
 
 CREATE TABLE rol (
     id_rol  INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -15,6 +15,8 @@ CREATE TABLE usuario (
     username       VARCHAR(40) NOT NULL UNIQUE,
     password_hash  TEXT NOT NULL,                       -- nunca contraseña en texto plano
     activo         BOOLEAN NOT NULL DEFAULT true,
+    intentos_fallidos INT NOT NULL DEFAULT 0 CHECK (intentos_fallidos >= 0),  -- RNF-04: bloqueo tras 5 intentos
+    bloqueado_hasta   TIMESTAMPTZ,                                           -- NULL = no bloqueado
     creado_en      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -23,7 +25,8 @@ CREATE TABLE mesa (
     id_mesa    INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     numero     INT NOT NULL UNIQUE CHECK (numero > 0),   -- numeración real: POR CONFIRMAR
     zona       VARCHAR(30),                              -- salón/jardín/terraza: POR CONFIRMAR
-    codigo_qr  VARCHAR(64) NOT NULL UNIQUE,              -- lo que lleva el QR: POR CONFIRMAR con Triztan
+    codigo_qr  VARCHAR(64) NOT NULL UNIQUE
+               DEFAULT replace(gen_random_uuid()::text, '-', ''),  -- aleatorio: no se puede adivinar el de otra mesa
     activa     BOOLEAN NOT NULL DEFAULT true
 );
 
@@ -61,7 +64,7 @@ CREATE TABLE producto (
     descripcion   TEXT,
     precio        NUMERIC(8,2) NOT NULL CHECK (precio >= 0),
     disponible    BOOLEAN NOT NULL DEFAULT true,
-    stock         INT CHECK (stock >= 0),                -- NULL = sin límite diario: POR CONFIRMAR (RF-10)
+    stock         INT CHECK (stock >= 0),                -- NULL = sin límite diario (RF-12)
     UNIQUE (id_categoria, nombre)
 );
 
@@ -69,6 +72,8 @@ CREATE TABLE producto (
 CREATE TABLE pedido (
     id_pedido      INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_comensal    INT NOT NULL REFERENCES comensal(id_comensal),
+    codigo_pedido  VARCHAR(12) NOT NULL UNIQUE,          -- código que el cliente lleva a caja (lo genera la API)
+    clave_envio    UUID UNIQUE,                          -- RNF-02: un reintento con mala señal no duplica el pedido
     estado         VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE_PAGO',
     creado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -95,7 +100,7 @@ CREATE TABLE pago (
     monto       NUMERIC(10,2) NOT NULL CHECK (monto > 0),
     pagado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
     -- Métodos reales del recreo: POR CONFIRMAR en la entrevista (quitar los que no usen)
-    CONSTRAINT ck_pago_metodo CHECK (metodo IN ('EFECTIVO','YAPE','PLIN','POS'))
+    CONSTRAINT ck_pago_metodo CHECK (metodo IN ('EFECTIVO','YAPE','PLIN','TARJETA'))
 );
 
 -- 11. historial_estado_pedido (lo llena el trigger en 02_triggers.sql)
