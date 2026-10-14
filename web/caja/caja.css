@@ -1,0 +1,78 @@
+.buscador {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: var(--espacio-2);
+}
+
+.buscador input {
+  font-family: var(--fuente-codigo);
+  text-transform: uppercase;
+}
+
+.cobro {
+  display: grid;
+  gap: var(--espacio-4);
+  border-top: 6px solid var(--brasa);
+}
+
+.cobro__total {
+  font-size: var(--texto-xxl);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.metodos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.metodos legend {
+  margin-bottom: var(--espacio-2);
+  font-weight: 600;
+}
+
+.metodo {
+  position: relative;
+}
+
+.metodo input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+
+.metodo span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--toque);
+  border: 2px solid var(--borde);
+  border-radius: var(--radio-s);
+  font-weight: 700;
+}
+
+.metodo input:hover + span {
+  border-color: var(--brasa);
+}
+
+.metodo input:checked + span {
+  border-color: var(--brasa);
+  background: var(--brasa-suave);
+  color: var(--brasa-fuerte);
+}
+
+.metodo input:focus-visible + span {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.cobro__acciones {
+  display: grid;
+  gap: var(--espacio-2);
+}

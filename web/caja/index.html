@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#26190f" media="(prefers-color-scheme: dark)">
+  <title>Caja · Recreo Chispa</title>
+  <link rel="icon" href="/compartido/icono.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/compartido/estilos.css">
+  <link rel="stylesheet" href="/compartido/personal.css">
+  <link rel="stylesheet" href="/caja/caja.css">
+  <script type="module" src="/caja/caja.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#principal">Ir al contenido</a>
+  <main id="principal" class="tablero tablero--dos-columnas">
+    <section class="tablero__columna" aria-labelledby="titulo-cobro">
+      <h2 id="titulo-cobro">Cobrar</h2>
+      <form id="form-buscar" class="buscador" role="search" novalidate>
+        <div class="campo">
+          <label for="codigo">Código del pedido</label>
+          <input id="codigo" name="codigo" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="M05-017" maxlength="10">
+        </div>
+        <button type="submit" class="boton">Buscar</button>
+      </form>
+      <div id="aviso-cobro" hidden></div>
+      <div id="panel-cobro" hidden></div>
+    </section>
+
+    <section class="tablero__columna" aria-labelledby="titulo-pendientes">
+      <h2 id="titulo-pendientes">Por pagar <span id="contador-pendientes" class="contador">0</span></h2>
+      <div id="lista-pendientes" class="pila">
+        <p class="cargando">Cargando pedidos…</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
