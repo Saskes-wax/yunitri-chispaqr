@@ -1,7 +1,7 @@
--- ChispaQR - trigger de cambio de estado del pedido (Hito 2)
+-- ChispaQR - triggers del pedido (v2, contrato v1.2)
 -- Regla: no se cocina lo que no se pagó.
--- Transiciones: PENDIENTE_PAGO -> PAGADO | CANCELADO; PAGADO -> EN_PREPARACION | CANCELADO;
---               EN_PREPARACION -> LISTO -> ENTREGADO  (cancelar un pedido pagado: por confirmar)
+-- Transiciones: PENDIENTE_PAGO -> PAGADO | CANCELADO; PAGADO -> EN_PREPARACION;
+--               EN_PREPARACION -> LISTO -> ENTREGADO  (un pedido pagado ya no se cancela)
 -- Opcional: SET LOCAL app.id_usuario = '<id>'; registra quién hizo el cambio.
 
 CREATE OR REPLACE FUNCTION fn_pedido_cambio_estado()
@@ -28,7 +28,7 @@ BEGIN
     -- Solo se permiten las transiciones del flujo
     IF NOT (
            (OLD.estado = 'PENDIENTE_PAGO' AND NEW.estado IN ('PAGADO','CANCELADO'))
-        OR (OLD.estado = 'PAGADO'         AND NEW.estado IN ('EN_PREPARACION','CANCELADO'))
+        OR (OLD.estado = 'PAGADO'         AND NEW.estado = 'EN_PREPARACION')
         OR (OLD.estado = 'EN_PREPARACION' AND NEW.estado = 'LISTO')
         OR (OLD.estado = 'LISTO'          AND NEW.estado = 'ENTREGADO')
     ) THEN
@@ -93,3 +93,26 @@ CREATE TRIGGER trg_pedido_estado_inicial
 AFTER INSERT ON pedido
 FOR EACH ROW
 EXECUTE FUNCTION fn_pedido_estado_inicial();
+
+-- 3) El detalle de un pedido solo se modifica mientras está PENDIENTE_PAGO
+--    (nadie agrega platos sin pagar a un pedido ya pagado)
+CREATE OR REPLACE FUNCTION fn_detalle_solo_pendiente()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id     INT := COALESCE(NEW.id_pedido, OLD.id_pedido);
+    v_estado VARCHAR(20);
+BEGIN
+    SELECT estado INTO v_estado FROM pedido WHERE id_pedido = v_id;
+    IF v_estado IS DISTINCT FROM 'PENDIENTE_PAGO' THEN
+        RAISE EXCEPTION 'Pedido % está en %: su detalle ya no se puede modificar', v_id, v_estado;
+    END IF;
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE TRIGGER trg_detalle_solo_pendiente
+BEFORE INSERT OR UPDATE OR DELETE ON detalle_pedido
+FOR EACH ROW
+EXECUTE FUNCTION fn_detalle_solo_pendiente();

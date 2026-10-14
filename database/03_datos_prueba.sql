@@ -1,4 +1,4 @@
--- ChispaQR - datos de prueba (Hito 2)
+-- ChispaQR - datos de prueba (v2)
 -- Datos de EJEMPLO, por confirmar con la entrevista (carta, precios, mesas, zonas, métodos de pago).
 -- Contraseña de todos los usuarios de prueba: chispa123 (con hash).
 
@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 INSERT INTO rol (nombre) VALUES ('ADMINISTRADOR'), ('CAJERO'), ('COCINA'), ('MOZO');
 
 INSERT INTO usuario (id_rol, nombre, username, password_hash, activo)
-SELECT r.id_rol, u.nombre, u.username, crypt('chispa123', gen_salt('bf')), u.activo
+SELECT r.id_rol, u.nombre, u.username, crypt('chispa123', gen_salt('bf', 10)), u.activo
 FROM (VALUES
     ('ADMINISTRADOR', 'Dueño del recreo (ejemplo)', 'admin',          true),
     ('CAJERO',        'Cajero (ejemplo)',           'cajero',         true),
@@ -19,15 +19,11 @@ FROM (VALUES
 JOIN rol r ON r.nombre = u.rol;
 
 -- Mesas (EJEMPLO: 8 mesas en 3 zonas)
-INSERT INTO mesa (numero, zona, codigo_qr) VALUES
-    (1, 'Salón',   'chispa-mesa-01'),
-    (2, 'Salón',   'chispa-mesa-02'),
-    (3, 'Salón',   'chispa-mesa-03'),
-    (4, 'Jardín',  'chispa-mesa-04'),
-    (5, 'Jardín',  'chispa-mesa-05'),
-    (6, 'Jardín',  'chispa-mesa-06'),
-    (7, 'Terraza', 'chispa-mesa-07'),
-    (8, 'Terraza', 'chispa-mesa-08');
+-- codigo_qr se genera solo (aleatorio)
+INSERT INTO mesa (numero, zona) VALUES
+    (1, 'Salón'), (2, 'Salón'), (3, 'Salón'),
+    (4, 'Jardín'), (5, 'Jardín'), (6, 'Jardín'),
+    (7, 'Terraza'), (8, 'Terraza');
 
 -- Carta (EJEMPLO) - precios en soles
 INSERT INTO categoria (nombre, orden) VALUES
@@ -64,9 +60,9 @@ DECLARE
     v_item     TEXT;
     v_estado   TEXT;
     v_hora     TIMESTAMPTZ;
+    v_n        INT := 0;      -- correlativo del código de pedido (como la API: M05-001)
 BEGIN
     SELECT id_usuario INTO v_cajero FROM usuario WHERE username = 'cajero';
-    PERFORM set_config('app.id_usuario', v_cajero::TEXT, true);
 
     FOR r IN
         SELECT * FROM (VALUES
@@ -76,7 +72,7 @@ BEGIN
             (1, 'Lucía',  '2026-10-11 12:50', ARRAY['Papa a la huancaína','Choclo con queso'],                         'ENTREGADO',      'PLIN'),
             (4, 'Jorge',  '2026-10-11 13:00', ARRAY['Cuy chactado (media porción)','Chicha morada','Cerveza'],          'ENTREGADO',      'EFECTIVO'),
             (5, 'Ana',    '2026-10-11 13:05', ARRAY['Trucha frita','Trucha frita','Gaseosa 1.5 L'],                    'ENTREGADO',      'YAPE'),
-            (6, 'Pedro',  '2026-10-11 13:10', ARRAY['Adobo','Lomo saltado','Cerveza'],                                 'ENTREGADO',      'POS'),
+            (6, 'Pedro',  '2026-10-11 13:10', ARRAY['Adobo','Lomo saltado','Cerveza'],                                 'ENTREGADO',      'TARJETA'),
             (2, 'Elena',  '2026-10-11 13:15', ARRAY['Trucha frita','Mazamorra morada'],                                'ENTREGADO',      'EFECTIVO'),
             (7, 'Raúl',   '2026-10-11 13:25', ARRAY['Lomo saltado','Chicha morada'],                                   'ENTREGADO',      'YAPE'),
             (8, 'Sofía',  '2026-10-11 13:30', ARRAY['Adobo','Gelatina'],                                               'ENTREGADO',      'EFECTIVO'),
@@ -90,6 +86,7 @@ BEGIN
         ) AS t(mesa, comensal, hora, items, estado_final, metodo)
     LOOP
         v_hora := r.hora::TIMESTAMP AT TIME ZONE 'America/Lima';
+        v_n    := v_n + 1;
 
         -- sesión de la mesa: se reutiliza la abierta o se abre una nueva
         SELECT id_mesa INTO v_mesa FROM mesa WHERE numero = r.mesa;
@@ -104,8 +101,10 @@ BEGIN
         VALUES (v_sesion, r.comensal, v_hora)
         RETURNING id_comensal INTO v_comensal;
 
-        INSERT INTO pedido (id_comensal, creado_en)
-        VALUES (v_comensal, v_hora)
+        -- el pedido lo crea el comensal: sin usuario del personal
+        PERFORM set_config('app.id_usuario', '', true);
+        INSERT INTO pedido (id_comensal, codigo_pedido, creado_en)
+        VALUES (v_comensal, 'M' || lpad(r.mesa::TEXT, 2, '0') || '-' || lpad(v_n::TEXT, 3, '0'), v_hora)
         RETURNING id_pedido INTO v_pedido;
 
         FOREACH v_item IN ARRAY r.items LOOP
@@ -115,6 +114,9 @@ BEGIN
                 RAISE EXCEPTION 'Producto de prueba no existe: %', v_item;
             END IF;
         END LOOP;
+
+        -- desde aquí actúa el cajero (cobra o cancela)
+        PERFORM set_config('app.id_usuario', v_cajero::TEXT, true);
 
         IF r.estado_final = 'CANCELADO' THEN
             UPDATE pedido SET estado = 'CANCELADO' WHERE id_pedido = v_pedido;
@@ -131,6 +133,19 @@ BEGIN
             END LOOP;
         END IF;
     END LOOP;
+
+    -- El historial toma la hora de carga; se ajusta a la hora del domingo de ejemplo
+    UPDATE historial_estado_pedido h
+       SET cambiado_en = p.creado_en + CASE h.estado_nuevo
+               WHEN 'PENDIENTE_PAGO' THEN INTERVAL '0 minutes'
+               WHEN 'CANCELADO'      THEN INTERVAL '20 minutes'
+               WHEN 'PAGADO'         THEN INTERVAL '3 minutes'
+               WHEN 'EN_PREPARACION' THEN INTERVAL '5 minutes'
+               WHEN 'LISTO'          THEN INTERVAL '20 minutes'
+               WHEN 'ENTREGADO'      THEN INTERVAL '23 minutes'
+           END
+      FROM pedido p
+     WHERE p.id_pedido = h.id_pedido;
 
     -- Mesas 7 y 8 ya terminaron: se cierran sus sesiones
     UPDATE sesion_mesa
