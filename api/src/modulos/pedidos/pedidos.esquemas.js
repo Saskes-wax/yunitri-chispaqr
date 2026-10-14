@@ -24,8 +24,13 @@ export const crearPedidoEsquema = {
         )
         .min(1, 'El pedido debe tener al menos un producto')
         .max(LINEAS_MAXIMAS_POR_PEDIDO),
+      claveEnvio: z.string().uuid('claveEnvio debe ser un UUID').optional(),
     })
     .strict(),
+};
+
+export const idPedidoEsquema = {
+  params: z.object({ idPedido }),
 };
 
 export const listarPedidosEsquema = {

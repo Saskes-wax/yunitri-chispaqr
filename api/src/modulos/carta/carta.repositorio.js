@@ -48,6 +48,25 @@ export async function insertarProducto({ idCategoria, nombre, descripcion, preci
   return aProducto(rows[0]);
 }
 
+// Lista blanca: solo estas columnas se pueden actualizar desde la API.
+const COLUMNAS_EDITABLES = Object.freeze({
+  idCategoria: 'id_categoria',
+  nombre: 'nombre',
+  descripcion: 'descripcion',
+  precio: 'precio',
+  disponible: 'disponible',
+});
+
+export async function actualizarProducto(idProducto, cambios) {
+  const campos = Object.keys(cambios).filter((campo) => campo in COLUMNAS_EDITABLES);
+  const asignaciones = campos.map((campo, indice) => `${COLUMNAS_EDITABLES[campo]} = $${indice + 2}`);
+  const { rowCount } = await pool.query(
+    `UPDATE producto SET ${asignaciones.join(', ')} WHERE id_producto = $1`,
+    [idProducto, ...campos.map((campo) => cambios[campo])],
+  );
+  return rowCount > 0;
+}
+
 export async function actualizarDisponibilidad(idProducto, disponible) {
   const { rowCount } = await pool.query(
     'UPDATE producto SET disponible = $2 WHERE id_producto = $1',

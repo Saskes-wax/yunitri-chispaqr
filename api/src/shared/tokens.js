@@ -35,11 +35,11 @@ export function verificarTokenPersonal(token) {
   return { idUsuario: Number(carga.sub), rol: carga.rol };
 }
 
-export function firmarTokenComensal({ idComensal, idSesionMesa, idMesa }) {
-  return firmar({ sub: String(idComensal), idSesionMesa, idMesa }, AUDIENCIA_COMENSAL, EXPIRACION_TOKEN_COMENSAL);
+export function firmarTokenComensal({ idComensal, idSesion, idMesa }) {
+  return firmar({ sub: String(idComensal), idSesion, idMesa }, AUDIENCIA_COMENSAL, EXPIRACION_TOKEN_COMENSAL);
 }
 
 export function verificarTokenComensal(token) {
   const carga = verificar(token, AUDIENCIA_COMENSAL);
-  return { idComensal: Number(carga.sub), idSesionMesa: carga.idSesionMesa, idMesa: carga.idMesa };
+  return { idComensal: Number(carga.sub), idSesion: carga.idSesion, idMesa: carga.idMesa };
 }

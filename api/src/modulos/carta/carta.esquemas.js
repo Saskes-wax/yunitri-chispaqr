@@ -30,6 +30,20 @@ export const crearProductoEsquema = {
     .strict(),
 };
 
+export const actualizarProductoEsquema = {
+  params: z.object({ idProducto: id }),
+  body: z
+    .object({
+      idCategoria: z.number().int().positive().optional(),
+      nombre: z.string().trim().min(1).max(80).optional(),
+      descripcion: z.string().trim().max(200).nullable().optional(),
+      precio: precio.optional(),
+      disponible: z.boolean().optional(),
+    })
+    .strict()
+    .refine((cambios) => Object.keys(cambios).length > 0, 'Envía al menos un campo para cambiar'),
+};
+
 export const cambiarDisponibilidadEsquema = {
   params: z.object({ idProducto: id }),
   body: z.object({ disponible: z.boolean() }).strict(),

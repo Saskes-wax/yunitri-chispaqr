@@ -1,58 +1,55 @@
 import { randomBytes } from 'node:crypto';
 import { conTransaccion } from '../../db/transaccion.js';
 import { Conflicto, NoEncontrado } from '../../shared/errores.js';
-import { ESTADOS_MESA } from '../../shared/constantes.js';
 import { firmarTokenComensal } from '../../shared/tokens.js';
 import * as mesasRepo from './mesas.repositorio.js';
 
-const BYTES_TOKEN_QR = 24;
+const BYTES_CODIGO_QR = 24;
 
-export function generarTokenQr() {
-  return randomBytes(BYTES_TOKEN_QR).toString('base64url');
+export function generarCodigoQr() {
+  return randomBytes(BYTES_CODIGO_QR).toString('base64url');
 }
 
-export async function obtenerMesaPorToken(tokenQr) {
-  const mesa = await mesasRepo.buscarPorToken(tokenQr);
+export async function obtenerMesaPorCodigoQr(codigoQr) {
+  const mesa = await mesasRepo.buscarPorCodigoQr(codigoQr);
   if (!mesa) {
     throw new NoEncontrado('Mesa');
   }
-  return { numero: mesa.numero, estado: mesa.estado };
+  return { numero: mesa.numero, zona: mesa.zona, activa: mesa.activa };
 }
 
-async function obtenerOAbrirSesion(cliente, mesa) {
-  const idSesionAbierta = await mesasRepo.buscarSesionAbierta(cliente, mesa.idMesa);
-  if (idSesionAbierta) {
-    return idSesionAbierta;
-  }
-  const idSesionNueva = await mesasRepo.abrirSesion(cliente, mesa.idMesa);
-  await mesasRepo.actualizarEstado(cliente, mesa.idMesa, ESTADOS_MESA.OCUPADA);
-  return idSesionNueva;
+async function obtenerOAbrirSesion(cliente, idMesa) {
+  return (await mesasRepo.buscarSesionAbierta(cliente, idMesa)) ?? mesasRepo.abrirSesion(cliente, idMesa);
 }
 
-export async function registrarComensal({ tokenQr, nombreAlias }) {
+export async function registrarComensal({ codigoQr, nombre }) {
   return conTransaccion(async (cliente) => {
     // FOR UPDATE: dos comensales que escanean a la vez comparten la misma sesión de mesa.
-    const mesa = await mesasRepo.bloquearPorToken(cliente, tokenQr);
+    const mesa = await mesasRepo.bloquearPorCodigoQr(cliente, codigoQr);
     if (!mesa) {
       throw new NoEncontrado('Mesa');
     }
-    if (mesa.estado === ESTADOS_MESA.INACTIVA) {
+    if (!mesa.activa) {
       throw new Conflicto('MESA_INACTIVA', 'Esta mesa no está atendiendo en este momento');
     }
 
-    const idSesionMesa = await obtenerOAbrirSesion(cliente, mesa);
-    const idComensal = await mesasRepo.insertarComensal(cliente, { idSesionMesa, nombreAlias });
+    const idSesion = await obtenerOAbrirSesion(cliente, mesa.idMesa);
+    const idComensal = await mesasRepo.insertarComensal(cliente, { idSesion, nombre });
 
     return {
-      token: firmarTokenComensal({ idComensal, idSesionMesa, idMesa: mesa.idMesa }),
-      comensal: { idComensal, nombreAlias },
-      mesa: { numero: mesa.numero },
+      token: firmarTokenComensal({ idComensal, idSesion, idMesa: mesa.idMesa }),
+      comensal: { idComensal, nombre },
+      mesa: { numero: mesa.numero, zona: mesa.zona },
     };
   });
 }
 
+export function crearMesa(datos) {
+  return mesasRepo.insertarMesa(datos);
+}
+
 export async function regenerarQr(idMesa) {
-  const mesa = await mesasRepo.actualizarToken(idMesa, generarTokenQr());
+  const mesa = await mesasRepo.actualizarCodigoQr(idMesa, generarCodigoQr());
   if (!mesa) {
     throw new NoEncontrado('Mesa');
   }

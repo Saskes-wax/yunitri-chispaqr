@@ -3,7 +3,12 @@ import { autenticarPersonal } from '../../middlewares/autenticar.js';
 import { autorizar } from '../../middlewares/autorizar.js';
 import { validar } from '../../middlewares/validar.js';
 import { ROLES } from '../../shared/constantes.js';
-import { cambiarDisponibilidadEsquema, crearProductoEsquema, listarProductosEsquema } from './carta.esquemas.js';
+import {
+  actualizarProductoEsquema,
+  cambiarDisponibilidadEsquema,
+  crearProductoEsquema,
+  listarProductosEsquema,
+} from './carta.esquemas.js';
 import * as controlador from './carta.controlador.js';
 
 export const rutasCategorias = Router();
@@ -20,6 +25,14 @@ rutasProductos.post(
   autorizar(ROLES.ADMINISTRADOR),
   validar(crearProductoEsquema),
   controlador.crearProducto,
+);
+
+rutasProductos.patch(
+  '/:idProducto',
+  autenticarPersonal,
+  autorizar(ROLES.ADMINISTRADOR),
+  validar(actualizarProductoEsquema),
+  controlador.actualizarProducto,
 );
 
 rutasProductos.patch(
