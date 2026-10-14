@@ -52,14 +52,28 @@ yunitri-chispaqr/
 
 ## Cómo levantarlo
 
-> Se completa cuando estén listos `database/01_esquema.sql`, los `Dockerfile` y el `docker-compose.yml` final (Hito 2).
+Requisito: Docker Desktop (o Docker Engine con Compose). La base de datos se crea la primera vez con los scripts de `database/`.
 
 ```bash
 git clone https://github.com/Saskes-wax/yunitri-chispaqr.git
 cd yunitri-chispaqr
-cp .env.example .env      # y cambia las contraseñas
-docker compose up -d
+cp .env.example .env      # cambia las contraseñas y JWT_SECRET
+docker compose up -d --build
+docker compose ps         # db, api y web deben figurar como "healthy" o "running"
 ```
 
-- Web: http://localhost:8080
-- API: http://localhost:3000/api/v1/health
+| Qué | Dirección |
+|---|---|
+| Ingreso del personal (caja, cocina, mozo) | http://localhost:8080/personal/ |
+| Comensal | la dirección del QR de cada mesa: `http://<servidor>:8080/m/{token_qr}` |
+| Salud de la API | http://localhost:8080/api/v1/health |
+
+Los usuarios de prueba (uno por rol) y las mesas son los que carga `database/03_datos_prueba.sql`.
+
+Para imprimir los QR de las mesas, desde `api/`: `npm install` y luego `npm run qr` (detalle en [`api/README.md`](api/README.md)). Para trabajar sin Docker, revisa [`api/README.md`](api/README.md) y [`web/README.md`](web/README.md).
+
+## Documentación técnica
+
+- Endpoints de la API: [`docs/api/endpoints.md`](docs/api/endpoints.md)
+- Arquitectura de software: [`docs/diagramas/arquitectura-software.png`](docs/diagramas/arquitectura-software.png)
+- Pruebas automáticas: `npm test` dentro de `api/` (unitarias y de integración contra PostgreSQL)
