@@ -4,11 +4,11 @@ HTML, CSS y JavaScript sin framework ni paso de compilación. Pensada primero pa
 
 | Pantalla | Ruta | Quién | Módulo |
 |---|---|---|---|
-| Entrada por QR, carta, carrito y estado del pedido | `/m/{token_qr}` | Comensal | M1, M2, M3 |
+| Carta sin registro, carrito, nombre al confirmar y estado del pedido | `/m/{codigo_qr}` | Comensal | M1, M2, M3 |
 | Ingreso del personal | `/personal/` | Personal | M6 |
-| Caja: pendientes, buscar por código, cobrar y cancelar | `/caja/` | Cajero, Administrador | M4 |
+| Caja: pendientes agrupados por mesa, buscar por código, cobrar, ticket interno y cancelar | `/caja/` | Cajero, Administrador | M4 |
 | Cocina: pagados y en preparación, marcar agotados | `/cocina/` | Cocina, Administrador | M5 |
-| Mozo: pedidos listos para llevar | `/mozo/` | Mozo, Administrador | M5 |
+| Mozo: pedidos listos para servir, con mesa y zona | `/mozo/` | Mozo, Administrador | M5 |
 
 El estado del pedido y las listas se actualizan solos cada 5 segundos. Si se pierde la conexión, esperan más entre intentos y se recuperan solos.
 
@@ -19,7 +19,7 @@ compartido/   api.js (único lugar con fetch), sesion.js, sondeo.js, formato.js,
 comensal/     pantalla del comensal
 personal/     login
 caja/  cocina/  mozo/
-nginx.conf    proxy /api → api:3000 y ruta /m/{token_qr}
+nginx.conf    proxy /api → api:3000 y ruta /m/{codigo_qr}
 ```
 
 ## Probar sin Docker

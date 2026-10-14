@@ -36,7 +36,7 @@ function crearBarra(pantallaActual, usuario) {
         ),
       ),
     indicador,
-    el('span', { class: 'barra-personal__usuario' }, usuario.nombreCompleto),
+    el('span', { class: 'barra-personal__usuario' }, usuario.nombre),
     el('button', { type: 'button', class: 'boton boton--secundario', onclick: salir }, 'Salir'),
   );
 

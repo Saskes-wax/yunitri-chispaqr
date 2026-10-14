@@ -437,3 +437,8 @@ textarea {
     scroll-behavior: auto !important;
   }
 }
+
+.lineas .agotado {
+  color: var(--peligro);
+  font-weight: 700;
+}
