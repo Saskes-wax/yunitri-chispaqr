@@ -24,8 +24,6 @@ export const ROLES = Object.freeze({
   MOZO: 'MOZO',
 });
 
-export const ESTADOS_MESA = Object.freeze({ LIBRE: 'LIBRE', OCUPADA: 'OCUPADA', INACTIVA: 'INACTIVA' });
-export const ESTADOS_SESION_MESA = Object.freeze({ ABIERTA: 'ABIERTA', CERRADA: 'CERRADA' });
 export const METODOS_PAGO = Object.freeze({ EFECTIVO: 'EFECTIVO', YAPE: 'YAPE', PLIN: 'PLIN', TARJETA: 'TARJETA' });
 
 // Estados que cada rol puede consultar y fijar (matriz RBAC, sección IX).
@@ -43,11 +41,21 @@ export const ESTADOS_QUE_PUEDE_FIJAR = Object.freeze({
   MOZO: [ESTADOS_PEDIDO.ENTREGADO],
 });
 
+// Estados en los que el pedido ya se cobró y puede imprimirse su ticket interno (RF-09).
+export const ESTADOS_CON_TICKET = Object.freeze([
+  ESTADOS_PEDIDO.PAGADO,
+  ESTADOS_PEDIDO.EN_PREPARACION,
+  ESTADOS_PEDIDO.LISTO,
+  ESTADOS_PEDIDO.ENTREGADO,
+]);
+
 export const MINUTOS_PARA_CANCELAR = 20;
 export const EXPIRACION_TOKEN_COMENSAL = '6h';
 export const COSTO_BCRYPT = 12;
+export const INTENTOS_MAXIMOS_LOGIN = 5;
+export const MINUTOS_BLOQUEO_LOGIN = 15;
 
-export const LONGITUD_MAXIMA_ALIAS = 40;
+export const LONGITUD_MAXIMA_NOMBRE_COMENSAL = 60;
 export const LONGITUD_MAXIMA_NOTA = 140;
 export const CANTIDAD_MAXIMA_POR_LINEA = 20;
 export const LINEAS_MAXIMAS_POR_PEDIDO = 30;

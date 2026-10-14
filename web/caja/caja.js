@@ -1,8 +1,8 @@
 import { el, firmaDeLista, mostrarAviso, ocultarAviso, reemplazarContenido, repintarLista } from '/compartido/dom.js';
-import { ETIQUETAS_ESTADO, soles } from '/compartido/formato.js';
+import { ETIQUETAS_ESTADO, hora, soles } from '/compartido/formato.js';
 import { iniciarPantallaPersonal } from '/compartido/personal.js';
 import { crearSondeo } from '/compartido/sondeo.js';
-import { listaDeLineas, tarjetaPedido } from '/compartido/tarjeta-pedido.js';
+import { describirMesa, listaDeLineas, tarjetaPedido } from '/compartido/tarjeta-pedido.js';
 
 const MINUTOS_PARA_CANCELAR = 20;
 const METODOS_PAGO = Object.freeze([
@@ -22,6 +22,39 @@ function normalizarCodigo(texto) {
   return `M${coincide[1].padStart(2, '0')}-${coincide[2].padStart(3, '0')}`;
 }
 
+function nombreDelMetodo(metodo) {
+  return METODOS_PAGO.find(([valor]) => valor === metodo)?.[1] ?? metodo;
+}
+
+// RF-09: ticket interno para el cliente; no es un comprobante tributario.
+function mostrarTicket(ticket) {
+  const panel = $('panel-cobro');
+  const filas = ticket.lineas.map((linea) =>
+    el('li', {}, el('span', {}, `${linea.cantidad} × ${linea.nombre}`), el('span', {}, soles(linea.subtotal))),
+  );
+  reemplazarContenido(
+    panel,
+    el(
+      'article',
+      { class: 'tarjeta ticket-interno', 'aria-labelledby': 'ticket-codigo' },
+      el('p', { class: 'marca', translate: 'no' }, 'Recreo Chispa'),
+      el('p', { class: 'ticket-interno__aviso' }, 'Ticket interno · no es comprobante de pago'),
+      el('h3', { id: 'ticket-codigo', class: 'codigo pedido__codigo', translate: 'no' }, ticket.codigoPedido),
+      el('p', {}, describirMesa(ticket), ` · ${ticket.nombreComensal}`),
+      el('ul', { class: 'ticket-interno__lineas' }, filas),
+      el('p', { class: 'ticket-interno__total' }, el('span', {}, 'Total'), el('strong', {}, soles(ticket.total))),
+      el('p', { class: 'ticket-interno__pie' }, `${nombreDelMetodo(ticket.metodoPago)} · ${hora(ticket.fechaPago)}`),
+      el(
+        'div',
+        { class: 'cobro__acciones ticket-interno__acciones' },
+        el('button', { type: 'button', class: 'boton boton--ancho', onclick: () => window.print() }, 'Imprimir ticket'),
+        el('button', { type: 'button', class: 'boton boton--secundario boton--ancho', onclick: cerrarPanel }, 'Cerrar'),
+      ),
+    ),
+  );
+  panel.hidden = false;
+}
+
 function cerrarPanel() {
   $('panel-cobro').hidden = true;
   $('panel-cobro').replaceChildren();
@@ -38,12 +71,14 @@ async function cobrar(pedido, formulario, boton) {
   boton.disabled = true;
   try {
     const pago = await pantalla.llamar(`/pedidos/${pedido.idPedido}/pago`, { metodo: 'POST', cuerpo: { metodo } });
-    cerrarPanel();
-    const nombreMetodo = METODOS_PAGO.find(([valor]) => valor === pago.metodo)[1];
-    mostrarAviso($('aviso-cobro'), `${pago.codigoPedido} pagado con ${nombreMetodo} (${soles(pago.monto)}). Ya pasó a cocina.`, 'exito');
+    mostrarAviso(
+      $('aviso-cobro'),
+      `${pago.codigoPedido} pagado con ${nombreDelMetodo(pago.metodo)} (${soles(pago.monto)}). Ya pasó a cocina.`,
+      'exito',
+    );
     $('codigo').value = '';
-    $('codigo').focus();
     sondeo.ahora();
+    mostrarTicket(await pantalla.llamar(`/pedidos/${pedido.idPedido}/ticket`));
   } catch (error) {
     mostrarAviso($('aviso-cobro'), error.message);
     boton.disabled = false;
@@ -91,7 +126,7 @@ function abrirCobro(pedido) {
     'form',
     { class: 'tarjeta cobro', 'aria-labelledby': 'cobro-codigo', novalidate: true },
     el('h3', { id: 'cobro-codigo', class: 'codigo pedido__codigo', translate: 'no' }, pedido.codigoPedido),
-    el('p', { class: 'pedido__mesa' }, `Mesa ${pedido.numeroMesa} · ${pedido.nombreAlias}`),
+    el('p', { class: 'pedido__mesa' }, describirMesa(pedido), ` · ${pedido.nombreComensal}`),
     listaDeLineas(pedido.lineas),
     el('p', { class: 'cobro__total' }, soles(pedido.total)),
     selectorDeMetodo(),
@@ -127,24 +162,50 @@ async function buscar(evento) {
   }
 }
 
+function tarjetaPendiente(pedido) {
+  return tarjetaPedido(pedido, {
+    alertaMinutos: MINUTOS_PARA_CANCELAR,
+    acciones: [
+      el(
+        'button',
+        { type: 'button', class: 'boton', 'data-clave': `cobrar-${pedido.idPedido}`, onclick: () => abrirCobro(pedido) },
+        'Cobrar',
+      ),
+    ],
+  });
+}
+
+// RF-07: los pendientes se agrupan por mesa, en el orden de la mesa que pidió primero.
+function agruparPorMesa(pedidos) {
+  const grupos = new Map();
+  for (const pedido of pedidos) {
+    if (!grupos.has(pedido.numeroMesa)) grupos.set(pedido.numeroMesa, []);
+    grupos.get(pedido.numeroMesa).push(pedido);
+  }
+  return [...grupos.values()];
+}
+
+function grupoDeMesa(pedidos) {
+  const total = pedidos.reduce((suma, pedido) => suma + Number(pedido.total), 0);
+  const cantidad = pedidos.length === 1 ? '1 pedido' : `${pedidos.length} pedidos`;
+  return el(
+    'section',
+    { class: 'grupo-mesa', 'aria-label': describirMesa(pedidos[0]) },
+    el(
+      'h3',
+      { class: 'grupo-mesa__titulo' },
+      el('span', {}, describirMesa(pedidos[0])),
+      el('span', { class: 'grupo-mesa__resumen' }, `${cantidad} · ${soles(total)}`),
+    ),
+    pedidos.map(tarjetaPendiente),
+  );
+}
+
 async function cargarPendientes() {
   const { datos } = await pantalla.llamar('/pedidos?estado=PENDIENTE_PAGO');
   $('contador-pendientes').textContent = datos.length;
   repintarLista($('lista-pendientes'), firmaDeLista(datos), () =>
-    datos.length === 0
-      ? [el('p', { class: 'vacio' }, 'No hay pedidos por pagar.')]
-      : datos.map((pedido) =>
-          tarjetaPedido(pedido, {
-            alertaMinutos: MINUTOS_PARA_CANCELAR,
-            acciones: [
-              el(
-                'button',
-                { type: 'button', class: 'boton', 'data-clave': `cobrar-${pedido.idPedido}`, onclick: () => abrirCobro(pedido) },
-                'Cobrar',
-              ),
-            ],
-          }),
-        ),
+    datos.length === 0 ? [el('p', { class: 'vacio' }, 'No hay pedidos por pagar.')] : agruparPorMesa(datos).map(grupoDeMesa),
   );
 }
 

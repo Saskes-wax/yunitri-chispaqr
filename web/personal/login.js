@@ -16,18 +16,18 @@ formulario.addEventListener('submit', async (evento) => {
   evento.preventDefault();
   ocultarAviso(aviso);
 
-  const nombreUsuario = formulario.nombreUsuario.value.trim();
+  const username = formulario.username.value.trim();
   const contrasena = formulario.contrasena.value;
-  if (!nombreUsuario || !contrasena) {
+  if (!username || !contrasena) {
     mostrarAviso(aviso, 'Escribe tu usuario y tu contraseña.');
-    (nombreUsuario ? formulario.contrasena : formulario.nombreUsuario).focus();
+    (username ? formulario.contrasena : formulario.username).focus();
     return;
   }
 
   botonEntrar.disabled = true;
   botonEntrar.textContent = 'Entrando…';
   try {
-    const sesion = await llamarApi('/auth/login', { metodo: 'POST', cuerpo: { nombreUsuario, contrasena } });
+    const sesion = await llamarApi('/auth/login', { metodo: 'POST', cuerpo: { username, contrasena } });
     guardarSesionPersonal(sesion);
     location.replace(rutaInicialPorRol(sesion.usuario.rol));
   } catch (error) {

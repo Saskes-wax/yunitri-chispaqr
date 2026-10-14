@@ -76,3 +76,82 @@
   display: grid;
   gap: var(--espacio-2);
 }
+
+.grupo-mesa {
+  display: grid;
+  gap: var(--espacio-2);
+}
+
+.grupo-mesa__titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  font-size: var(--texto-m);
+}
+
+.grupo-mesa__resumen {
+  color: var(--texto-suave);
+  font-size: var(--texto-xs);
+  font-weight: 400;
+}
+
+.ticket-interno {
+  display: grid;
+  gap: var(--espacio-2);
+  border-top: 6px solid var(--brasa);
+}
+
+.ticket-interno__aviso,
+.ticket-interno__pie {
+  color: var(--texto-suave);
+  font-size: var(--texto-xs);
+}
+
+.ticket-interno__lineas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espacio-1);
+}
+
+.ticket-interno__lineas li,
+.ticket-interno__total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.ticket-interno__total {
+  padding-top: var(--espacio-2);
+  border-top: 1px dashed var(--borde);
+  font-size: var(--texto-l);
+}
+
+/* Al imprimir solo sale el ticket, en blanco y negro y del ancho de una ticketera. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .ticket-interno,
+  .ticket-interno * {
+    visibility: visible;
+    color: #000 !important;
+  }
+
+  .ticket-interno {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 72mm;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+  }
+
+  .ticket-interno__acciones {
+    display: none;
+  }
+}

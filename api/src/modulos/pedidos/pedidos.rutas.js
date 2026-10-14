@@ -11,6 +11,7 @@ import { ROLES } from '../../shared/constantes.js';
 import {
   cambiarEstadoEsquema,
   crearPedidoEsquema,
+  idPedidoEsquema,
   listarPedidosEsquema,
   obtenerPorCodigoEsquema,
 } from './pedidos.esquemas.js';
@@ -36,6 +37,14 @@ rutasPedidos.get(
   autorizar(...TODO_EL_PERSONAL),
   validar(listarPedidosEsquema),
   controlador.listar,
+);
+
+rutasPedidos.get(
+  '/:idPedido/ticket',
+  autenticarPersonal,
+  autorizar(ROLES.CAJERO, ROLES.ADMINISTRADOR),
+  validar(idPedidoEsquema),
+  controlador.obtenerTicket,
 );
 
 rutasPedidos.patch(

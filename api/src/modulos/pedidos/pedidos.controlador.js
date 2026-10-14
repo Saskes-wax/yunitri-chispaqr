@@ -1,12 +1,17 @@
 import * as pedidosServicio from './pedidos.servicio.js';
 
 export async function crear(req, res) {
-  const pedido = await pedidosServicio.crearPedido({
+  const { pedido, esNuevo } = await pedidosServicio.crearPedido({
     idComensal: req.comensal.idComensal,
     lineas: req.validado.body.lineas,
+    claveEnvio: req.validado.body.claveEnvio,
   });
-  req.log.info({ idPedido: pedido.idPedido, codigoPedido: pedido.codigoPedido }, 'pedido creado');
-  res.status(201).json(pedido);
+  if (esNuevo) req.log.info({ idPedido: pedido.idPedido, codigoPedido: pedido.codigoPedido }, 'pedido creado');
+  res.status(esNuevo ? 201 : 200).json(pedido);
+}
+
+export async function obtenerTicket(req, res) {
+  res.json(await pedidosServicio.obtenerTicket(req.validado.params.idPedido));
 }
 
 export async function obtenerPorCodigo(req, res) {
@@ -31,6 +36,7 @@ export async function cambiarEstado(req, res) {
     idPedido: req.validado.params.idPedido,
     estadoNuevo: req.validado.body.estado,
     rol: req.usuario.rol,
+    idUsuario: req.usuario.idUsuario,
   });
   req.log.info(
     { idPedido: pedido.idPedido, estado: pedido.estado, idUsuario: req.usuario.idUsuario },

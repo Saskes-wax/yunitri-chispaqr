@@ -1,63 +1,73 @@
 import { pool } from '../../db/pool.js';
-import { ESTADOS_SESION_MESA } from '../../shared/constantes.js';
 
 function aMesa(fila) {
-  return { idMesa: fila.id_mesa, numero: fila.numero, estado: fila.estado, tokenQr: fila.token_qr };
+  return {
+    idMesa: fila.id_mesa,
+    numero: fila.numero,
+    zona: fila.zona,
+    codigoQr: fila.codigo_qr,
+    activa: fila.activa,
+  };
 }
 
-export async function buscarPorToken(tokenQr, cliente = pool) {
+const COLUMNAS_MESA = 'id_mesa, numero, zona, codigo_qr, activa';
+
+export async function buscarPorCodigoQr(codigoQr) {
+  const { rows } = await pool.query(`SELECT ${COLUMNAS_MESA} FROM mesa WHERE codigo_qr = $1`, [codigoQr]);
+  return rows[0] ? aMesa(rows[0]) : null;
+}
+
+export async function bloquearPorCodigoQr(cliente, codigoQr) {
   const { rows } = await cliente.query(
-    'SELECT id_mesa, numero, estado, token_qr FROM mesa WHERE token_qr = $1',
-    [tokenQr],
+    `SELECT ${COLUMNAS_MESA} FROM mesa WHERE codigo_qr = $1 FOR UPDATE`,
+    [codigoQr],
   );
   return rows[0] ? aMesa(rows[0]) : null;
 }
 
-export async function bloquearPorToken(cliente, tokenQr) {
-  const { rows } = await cliente.query(
-    'SELECT id_mesa, numero, estado, token_qr FROM mesa WHERE token_qr = $1 FOR UPDATE',
-    [tokenQr],
-  );
-  return rows[0] ? aMesa(rows[0]) : null;
-}
-
-export async function actualizarEstado(cliente, idMesa, estado) {
-  await cliente.query('UPDATE mesa SET estado = $2 WHERE id_mesa = $1', [idMesa, estado]);
-}
-
-export async function actualizarToken(idMesa, tokenQr) {
+// codigo_qr lo genera la base de datos (valor aleatorio por defecto en el esquema de Iván).
+export async function insertarMesa({ numero, zona }) {
   const { rows } = await pool.query(
-    'UPDATE mesa SET token_qr = $2 WHERE id_mesa = $1 RETURNING id_mesa, numero, estado, token_qr',
-    [idMesa, tokenQr],
+    `INSERT INTO mesa (numero, zona) VALUES ($1, $2) RETURNING ${COLUMNAS_MESA}`,
+    [numero, zona ?? null],
+  );
+  return aMesa(rows[0]);
+}
+
+export async function actualizarCodigoQr(idMesa, codigoQr) {
+  const { rows } = await pool.query(
+    `UPDATE mesa SET codigo_qr = $2 WHERE id_mesa = $1 RETURNING ${COLUMNAS_MESA}`,
+    [idMesa, codigoQr],
   );
   return rows[0] ? aMesa(rows[0]) : null;
 }
 
 export async function listarTodas() {
-  const { rows } = await pool.query('SELECT id_mesa, numero, estado, token_qr FROM mesa ORDER BY numero');
+  const { rows } = await pool.query(`SELECT ${COLUMNAS_MESA} FROM mesa ORDER BY numero`);
   return rows.map(aMesa);
 }
 
+// Una mesa está ocupada cuando tiene una sesión con cerrada_en vacío (contrato v1.2).
 export async function buscarSesionAbierta(cliente, idMesa) {
   const { rows } = await cliente.query(
-    'SELECT id_sesion_mesa FROM sesion_mesa WHERE id_mesa = $1 AND estado = $2',
-    [idMesa, ESTADOS_SESION_MESA.ABIERTA],
+    'SELECT id_sesion FROM sesion_mesa WHERE id_mesa = $1 AND cerrada_en IS NULL',
+    [idMesa],
   );
-  return rows[0]?.id_sesion_mesa ?? null;
+  return rows[0]?.id_sesion ?? null;
 }
 
 export async function abrirSesion(cliente, idMesa) {
   const { rows } = await cliente.query(
-    'INSERT INTO sesion_mesa (id_mesa, estado) VALUES ($1, $2) RETURNING id_sesion_mesa',
-    [idMesa, ESTADOS_SESION_MESA.ABIERTA],
+    'INSERT INTO sesion_mesa (id_mesa) VALUES ($1) RETURNING id_sesion',
+    [idMesa],
   );
-  return rows[0].id_sesion_mesa;
+  return rows[0].id_sesion;
 }
 
-export async function insertarComensal(cliente, { idSesionMesa, nombreAlias }) {
+export async function insertarComensal(cliente, { idSesion, nombre }) {
   const { rows } = await cliente.query(
-    'INSERT INTO comensal (id_sesion_mesa, nombre_alias) VALUES ($1, $2) RETURNING id_comensal',
-    [idSesionMesa, nombreAlias],
+    'INSERT INTO comensal (id_sesion, nombre) VALUES ($1, $2) RETURNING id_comensal',
+    [idSesion, nombre],
   );
   return rows[0].id_comensal;
 }

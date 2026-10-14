@@ -27,19 +27,6 @@
       <button id="reintentar" type="button" class="boton">Reintentar</button>
     </section>
 
-    <section id="vista-registro" class="pila" hidden aria-labelledby="titulo-registro">
-      <h1 id="titulo-registro" tabindex="-1">¡Bienvenido!</h1>
-      <p>Pide desde tu celular y paga en caja. Así no tienes que esperar al mozo.</p>
-      <form id="form-registro" class="tarjeta pila" novalidate>
-        <div class="campo">
-          <label for="nombreAlias">¿Cómo te llamamos?</label>
-          <input id="nombreAlias" name="nombreAlias" autocomplete="given-name" maxlength="40" required>
-          <span class="ayuda">Tu nombre o un apodo. Lo usamos para entregarte el pedido.</span>
-        </div>
-        <div id="aviso-registro" hidden></div>
-        <button id="boton-registro" type="submit" class="boton boton--ancho">Ver la carta</button>
-      </form>
-    </section>
 
     <section id="vista-carta" hidden aria-labelledby="titulo-carta">
       <h1 id="titulo-carta" class="solo-lector" tabindex="-1">Carta</h1>
@@ -52,6 +39,11 @@
       <h1 id="titulo-carrito" tabindex="-1">Tu pedido</h1>
       <ul id="lineas-carrito" class="carrito"></ul>
       <p class="carrito__total">Total <strong id="total-carrito"></strong></p>
+      <div id="campo-nombre" class="campo">
+        <label for="nombre">¿A nombre de quién?</label>
+        <input id="nombre" name="nombre" autocomplete="given-name" maxlength="60" required>
+        <span class="ayuda">Tu nombre o un apodo. Lo usamos para entregarte el pedido.</span>
+      </div>
       <p class="ayuda-pago">Al confirmar te damos un código. Con ese código pagas en caja y tu pedido pasa a cocina.</p>
       <div id="aviso-carrito" hidden></div>
       <button id="confirmar" type="button" class="boton boton--ancho">Confirmar pedido</button>

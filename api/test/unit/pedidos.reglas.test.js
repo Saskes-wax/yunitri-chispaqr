@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Conflicto } from '../../src/shared/errores.js';
 import {
-  calcularLineasYTotal,
+  armarLineas,
   generarCodigoPedido,
   validarTransicion,
 } from '../../src/modulos/pedidos/pedidos.reglas.js';
@@ -34,19 +34,19 @@ test('genera el código con la mesa y el número de pedido', () => {
   assert.equal(generarCodigoPedido(3, 1234), 'M03-1234');
 });
 
-test('calcula subtotales y total con el precio del producto', () => {
+test('cada línea toma el precio vigente de la carta', () => {
   const productos = new Map([
     [1, { precio: '25.00' }],
     [2, { precio: '4.50' }],
   ]);
-  const { lineas, total } = calcularLineasYTotal(
+  const lineas = armarLineas(
     [
       { idProducto: 1, cantidad: 2, nota: 'sin ají' },
       { idProducto: 2, cantidad: 3 },
     ],
     productos,
   );
-  assert.equal(total, '63.50');
-  assert.deepEqual(lineas[0], { idProducto: 1, cantidad: 2, nota: 'sin ají', precioUnitario: '25.00', subtotal: '50.00' });
+  assert.deepEqual(lineas[0], { idProducto: 1, cantidad: 2, nota: 'sin ají', precioUnitario: '25.00' });
+  assert.equal(lineas[1].precioUnitario, '4.50');
   assert.equal(lineas[1].nota, null);
 });

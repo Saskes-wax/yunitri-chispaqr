@@ -13,6 +13,14 @@ export function crearProducto(datos) {
   return cartaRepo.insertarProducto(datos);
 }
 
+export async function actualizarProducto(idProducto, cambios) {
+  const existe = await cartaRepo.actualizarProducto(idProducto, cambios);
+  if (!existe) {
+    throw new NoEncontrado('Producto');
+  }
+  return cartaRepo.buscarProductoPorId(idProducto);
+}
+
 export async function cambiarDisponibilidad(idProducto, disponible) {
   const existe = await cartaRepo.actualizarDisponibilidad(idProducto, disponible);
   if (!existe) {
