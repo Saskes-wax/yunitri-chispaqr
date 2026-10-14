@@ -9,6 +9,7 @@ import { rutasAuth } from './modulos/auth/auth.rutas.js';
 import { rutasMesas } from './modulos/mesas/mesas.rutas.js';
 import { rutasCategorias, rutasProductos } from './modulos/carta/carta.rutas.js';
 import { rutasPedidos } from './modulos/pedidos/pedidos.rutas.js';
+import { rutasPagos } from './modulos/pagos/pagos.rutas.js';
 
 const ID_PETICION_VALIDO = /^[\w-]{8,64}$/;
 
@@ -35,6 +36,7 @@ export function crearApp() {
   v1.use('/categorias', rutasCategorias);
   v1.use('/productos', rutasProductos);
   v1.use('/pedidos', rutasPedidos);
+  v1.use('/pedidos', rutasPagos);
 
   app.use('/api/v1', v1);
   app.use(rutaNoEncontrada);
