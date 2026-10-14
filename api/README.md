@@ -37,7 +37,7 @@ npm run dev
 
 ## Pruebas
 
-Las pruebas de integración usan una base de datos real que se vacía en cada prueba. Define `TEST_DATABASE_URL` apuntando a una base **solo de pruebas** (por ejemplo `chispaqr_test`) con el esquema de `database/` cargado.
+Las pruebas de integración usan una base PostgreSQL real **solo de pruebas** (por ejemplo `chispaqr_test`), indicada en `TEST_DATABASE_URL`. Al empezar cargan `database/01_esquema.sql` y `02_triggers.sql`, y vacían las tablas antes de cada prueba; así comprueban que la API y la base de datos siguen alineadas.
 
 ```bash
 npm test          # unitarias + integración
