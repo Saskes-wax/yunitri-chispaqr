@@ -1,5 +1,9 @@
 node_modules
 npm-debug.log
 .env
+test
+scripts
+qr-generados
+eslint.config.js
 Dockerfile
 .dockerignore

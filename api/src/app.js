@@ -1,17 +1,46 @@
-const express = require('express');
-const health = require('./health');
-const { rutaNoEncontrada, manejadorDeErrores } = require('./errors');
+import { randomUUID } from 'node:crypto';
+import express from 'express';
+import helmet from 'helmet';
+import { pinoHttp } from 'pino-http';
+import { logger } from './shared/logger.js';
+import { manejadorErrores, rutaNoEncontrada } from './middlewares/manejadorErrores.js';
+import { rutasSalud } from './modulos/salud/salud.rutas.js';
+import { rutasAuth } from './modulos/auth/auth.rutas.js';
+import { rutasMesas } from './modulos/mesas/mesas.rutas.js';
+import { rutasCategorias, rutasProductos } from './modulos/carta/carta.rutas.js';
+import { rutasPedidos } from './modulos/pedidos/pedidos.rutas.js';
+import { rutasPagos } from './modulos/pagos/pagos.rutas.js';
 
-const app = express();
+const ID_PETICION_VALIDO = /^[\w-]{8,64}$/;
 
-app.disable('x-powered-by');
-app.use(express.json({ limit: '100kb' }));
+function obtenerIdPeticion(req) {
+  const recibido = req.get('x-request-id');
+  return recibido && ID_PETICION_VALIDO.test(recibido) ? recibido : randomUUID();
+}
 
-const v1 = express.Router();
-v1.use('/health', health);
+export function crearApp() {
+  const app = express();
 
-app.use('/api/v1', v1);
-app.use(rutaNoEncontrada);
-app.use(manejadorDeErrores);
+  // La API corre detrás del Nginx del servicio web; así se lee la IP real del cliente.
+  app.set('trust proxy', 1);
+  app.disable('x-powered-by');
 
-module.exports = app;
+  app.use(helmet());
+  app.use(pinoHttp({ logger, genReqId: obtenerIdPeticion }));
+  app.use(express.json({ limit: '100kb' }));
+
+  const v1 = express.Router();
+  v1.use('/health', rutasSalud);
+  v1.use('/auth', rutasAuth);
+  v1.use('/mesas', rutasMesas);
+  v1.use('/categorias', rutasCategorias);
+  v1.use('/productos', rutasProductos);
+  v1.use('/pedidos', rutasPedidos);
+  v1.use('/pedidos', rutasPagos);
+
+  app.use('/api/v1', v1);
+  app.use(rutaNoEncontrada);
+  app.use(manejadorErrores);
+
+  return app;
+}
