@@ -1,4 +1,5 @@
 import '../entorno.js';
+import { randomUUID } from 'node:crypto';
 import { after, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pool } from '../../src/db/pool.js';
@@ -10,7 +11,7 @@ import {
   PRODUCTO,
   registrarComensal,
   reiniciarBaseDeDatos,
-  TOKEN_MESA_7,
+  QR_MESA_7,
 } from '../ayudantes.js';
 
 beforeEach(reiniciarBaseDeDatos);
@@ -43,7 +44,7 @@ describe('POST /pedidos (comensal)', () => {
 
   test('la numeración es única para todo el recreo, sin importar la mesa', async () => {
     const tokenMesa5 = await registrarComensal();
-    const tokenMesa7 = await registrarComensal(TOKEN_MESA_7, 'Juan');
+    const tokenMesa7 = await registrarComensal(QR_MESA_7, 'Juan');
     const primero = await crearPedido(tokenMesa5);
     const segundo = await crearPedido(tokenMesa7);
     assert.equal(primero.codigoPedido, 'M05-001');
@@ -53,7 +54,7 @@ describe('POST /pedidos (comensal)', () => {
   test('la numeración continúa al día siguiente, así el código nunca se repite', async () => {
     const token = await registrarComensal();
     const deAyer = await crearPedido(token);
-    await pool.query(`UPDATE pedido SET fecha_creacion = now() - interval '1 day' WHERE id_pedido = $1`, [deAyer.idPedido]);
+    await pool.query(`UPDATE pedido SET creado_en = now() - interval '1 day' WHERE id_pedido = $1`, [deAyer.idPedido]);
     const deHoy = await crearPedido(token);
     assert.equal(deAyer.codigoPedido, 'M05-001');
     assert.equal(deHoy.codigoPedido, 'M05-002');
@@ -117,7 +118,7 @@ describe('GET /pedidos/codigo/{codigo}', () => {
 
   test('un comensal no puede ver el pedido de otro (404)', async () => {
     const tokenRosa = await registrarComensal();
-    const tokenJuan = await registrarComensal(TOKEN_MESA_7, 'Juan');
+    const tokenJuan = await registrarComensal(QR_MESA_7, 'Juan');
     const pedido = await crearPedido(tokenRosa);
     await api().get(`/api/v1/pedidos/codigo/${pedido.codigoPedido}`).set(conToken(tokenJuan)).expect(404);
   });
@@ -207,15 +208,15 @@ describe('PATCH /pedidos/{id}/estado', () => {
     assert.equal(entregado.body.estado, 'ENTREGADO');
 
     const { rows } = await pool.query(
-      `SELECT h.estado_nuevo, u.nombre_usuario
+      `SELECT h.estado_nuevo, u.username
          FROM historial_estado_pedido h
          LEFT JOIN usuario u ON u.id_usuario = h.id_usuario
         WHERE h.id_pedido = $1
-        ORDER BY h.id_historial_estado_pedido`,
+        ORDER BY h.id_historial`,
       [pedido.idPedido],
     );
     assert.deepEqual(
-      rows.map((fila) => [fila.estado_nuevo, fila.nombre_usuario]),
+      rows.map((fila) => [fila.estado_nuevo, fila.username]),
       [['PENDIENTE_PAGO', null], ['PAGADO', 'caja'], ['EN_PREPARACION', 'cocina'], ['LISTO', 'cocina'], ['ENTREGADO', 'mozo']],
     );
   });
@@ -246,6 +247,97 @@ describe('trigger trg_pedido_cambio_estado', () => {
     const pedido = await crearPedido(await registrarComensal());
     await assert.rejects(
       pool.query(`UPDATE pedido SET estado = 'EN_PREPARACION' WHERE id_pedido = $1`, [pedido.idPedido]),
+      (err) => err.code === 'P0001',
+    );
+  });
+});
+
+describe('RNF-02: reintentos sin duplicar (clave_envio)', () => {
+  test('reenviar la misma clave devuelve el mismo pedido con 200 y no crea otro', async () => {
+    const token = await registrarComensal();
+    const cuerpo = { lineas: [{ idProducto: PRODUCTO.TRUCHA, cantidad: 1 }], claveEnvio: randomUUID() };
+    const primero = await api().post('/api/v1/pedidos').set(conToken(token)).send(cuerpo).expect(201);
+    const reintento = await api().post('/api/v1/pedidos').set(conToken(token)).send(cuerpo).expect(200);
+    assert.equal(reintento.body.codigoPedido, primero.body.codigoPedido);
+    const { rows } = await pool.query('SELECT count(*)::integer AS pedidos FROM pedido');
+    assert.equal(rows[0].pedidos, 1);
+  });
+
+  test('dos envíos simultáneos con la misma clave crean un solo pedido', async () => {
+    const token = await registrarComensal();
+    const cuerpo = { lineas: [{ idProducto: PRODUCTO.TRUCHA, cantidad: 1 }], claveEnvio: randomUUID() };
+    const respuestas = await Promise.all([
+      api().post('/api/v1/pedidos').set(conToken(token)).send(cuerpo),
+      api().post('/api/v1/pedidos').set(conToken(token)).send(cuerpo),
+    ]);
+    assert.deepEqual(respuestas.map((respuesta) => respuesta.status).sort(), [200, 201]);
+    assert.equal(respuestas[0].body.codigoPedido, respuestas[1].body.codigoPedido);
+  });
+
+  test('la clave de otro comensal no devuelve su pedido (409)', async () => {
+    const claveEnvio = randomUUID();
+    const tokenRosa = await registrarComensal();
+    await api().post('/api/v1/pedidos').set(conToken(tokenRosa)).send({ lineas: [{ idProducto: 1, cantidad: 1 }], claveEnvio }).expect(201);
+    const tokenJuan = await registrarComensal(QR_MESA_7, 'Juan');
+    await api().post('/api/v1/pedidos').set(conToken(tokenJuan)).send({ lineas: [{ idProducto: 1, cantidad: 1 }], claveEnvio }).expect(409);
+  });
+});
+
+describe('cobro con productos agotados (regla 7)', () => {
+  test('si un plato se agotó después de pedir, caja no puede cobrar (409) y el pedido sigue pendiente', async () => {
+    const pedido = await crearPedido(await registrarComensal());
+    await pool.query('UPDATE producto SET disponible = false WHERE id_producto = $1', [PRODUCTO.TRUCHA]);
+    const respuesta = await pagar(await iniciarSesion('caja'), pedido.idPedido).expect(409);
+    assert.equal(respuesta.body.error.codigo, 'PRODUCTO_AGOTADO');
+    assert.match(respuesta.body.error.mensaje, /Trucha frita/);
+    const { rows } = await pool.query('SELECT estado FROM pedido WHERE id_pedido = $1', [pedido.idPedido]);
+    assert.equal(rows[0].estado, 'PENDIENTE_PAGO');
+  });
+});
+
+describe('GET /pedidos/{id}/ticket (RF-09)', () => {
+  test('después de cobrar, caja obtiene el ticket interno con solo el nombre del comensal', async () => {
+    const pedido = await crearPedido(await registrarComensal());
+    const token = await iniciarSesion('caja');
+    await pagar(token, pedido.idPedido, 'EFECTIVO').expect(201);
+    const ticket = await api().get(`/api/v1/pedidos/${pedido.idPedido}/ticket`).set(conToken(token)).expect(200);
+    assert.equal(ticket.body.codigoPedido, pedido.codigoPedido);
+    assert.equal(ticket.body.nombreComensal, 'Rosa');
+    assert.equal(ticket.body.zona, 'Jardín');
+    assert.equal(ticket.body.metodoPago, 'EFECTIVO');
+    assert.equal(ticket.body.total, '50.00');
+    assert.equal(ticket.body.idComensal, undefined);
+  });
+
+  test('responde 409 si todavía no se pagó y 403 a cocina', async () => {
+    const pedido = await crearPedido(await registrarComensal());
+    await api().get(`/api/v1/pedidos/${pedido.idPedido}/ticket`).set(conToken(await iniciarSesion('caja'))).expect(409);
+    await api().get(`/api/v1/pedidos/${pedido.idPedido}/ticket`).set(conToken(await iniciarSesion('cocina'))).expect(403);
+  });
+});
+
+describe('pedido con mesa y zona (RF-17)', () => {
+  test('el mozo ve la mesa y la zona de los pedidos listos', async () => {
+    const pedido = await crearPedido(await registrarComensal());
+    await pagar(await iniciarSesion('caja'), pedido.idPedido).expect(201);
+    const tokenCocina = await iniciarSesion('cocina');
+    await cambiarEstado(tokenCocina, pedido.idPedido, 'EN_PREPARACION').expect(200);
+    await cambiarEstado(tokenCocina, pedido.idPedido, 'LISTO').expect(200);
+    const listos = await api().get('/api/v1/pedidos?estado=LISTO').set(conToken(await iniciarSesion('mozo'))).expect(200);
+    assert.equal(listos.body.datos[0].numeroMesa, 5);
+    assert.equal(listos.body.datos[0].zona, 'Jardín');
+  });
+});
+
+describe('detalle congelado al pagar (trigger trg_detalle_solo_pendiente)', () => {
+  test('la base de datos no deja agregar platos a un pedido ya pagado', async () => {
+    const pedido = await crearPedido(await registrarComensal());
+    await pagar(await iniciarSesion('caja'), pedido.idPedido).expect(201);
+    await assert.rejects(
+      pool.query(
+        'INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario) VALUES ($1, $2, 1, 4.50)',
+        [pedido.idPedido, PRODUCTO.GASEOSA],
+      ),
       (err) => err.code === 'P0001',
     );
   });

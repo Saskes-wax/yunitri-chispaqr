@@ -9,9 +9,9 @@ export const app = crearApp();
 export const api = () => request(app);
 
 export const CONTRASENA_PRUEBA = 'clave-de-prueba';
-export const TOKEN_MESA_5 = 'token-mesa-5-de-prueba-abcdef';
-export const TOKEN_MESA_7 = 'token-mesa-7-de-prueba-abcdef';
-export const TOKEN_MESA_INACTIVA = 'token-mesa-9-inactiva-abcdef';
+export const QR_MESA_5 = 'qr-mesa-5-de-prueba-abcdef';
+export const QR_MESA_7 = 'qr-mesa-7-de-prueba-abcdef';
+export const QR_MESA_INACTIVA = 'qr-mesa-9-inactiva-abcdef';
 
 export const PRODUCTO = Object.freeze({ TRUCHA: 1, GASEOSA: 2, MAZAMORRA_AGOTADA: 3 });
 
@@ -39,7 +39,7 @@ export async function reiniciarBaseDeDatos() {
   const hash = await bcrypt.hash(CONTRASENA_PRUEBA, 4);
   await pool.query(`INSERT INTO rol (nombre) VALUES ('ADMINISTRADOR'), ('CAJERO'), ('COCINA'), ('MOZO')`);
   await pool.query(
-    `INSERT INTO usuario (id_rol, nombre_usuario, nombre, contrasena_hash, activo) VALUES
+    `INSERT INTO usuario (id_rol, username, nombre, password_hash, activo) VALUES
        (1, 'admin', 'Admin', $1, true),
        (2, 'caja', 'Caja', $1, true),
        (3, 'cocina', 'Cocina', $1, true),
@@ -48,8 +48,9 @@ export async function reiniciarBaseDeDatos() {
     [hash],
   );
   await pool.query(
-    `INSERT INTO mesa (numero, token_qr, estado) VALUES ($1, $2, 'LIBRE'), ($3, $4, 'LIBRE'), ($5, $6, 'INACTIVA')`,
-    [5, TOKEN_MESA_5, 7, TOKEN_MESA_7, 9, TOKEN_MESA_INACTIVA],
+    `INSERT INTO mesa (numero, zona, codigo_qr, activa) VALUES
+       (5, 'Jardín', $1, true), (7, 'Terraza', $2, true), (9, 'Salón', $3, false)`,
+    [QR_MESA_5, QR_MESA_7, QR_MESA_INACTIVA],
   );
   await pool.query(`INSERT INTO categoria (nombre, orden) VALUES ('Platos', 1), ('Bebidas', 2)`);
   await pool.query(
@@ -60,16 +61,16 @@ export async function reiniciarBaseDeDatos() {
   );
 }
 
-export async function iniciarSesion(nombreUsuario) {
+export async function iniciarSesion(username) {
   const respuesta = await api()
     .post('/api/v1/auth/login')
-    .send({ nombreUsuario, contrasena: CONTRASENA_PRUEBA })
+    .send({ username, contrasena: CONTRASENA_PRUEBA })
     .expect(200);
   return respuesta.body.token;
 }
 
-export async function registrarComensal(tokenQr = TOKEN_MESA_5, nombreAlias = 'Rosa') {
-  const respuesta = await api().post(`/api/v1/mesas/${tokenQr}/comensales`).send({ nombreAlias }).expect(201);
+export async function registrarComensal(codigoQr = QR_MESA_5, nombre = 'Rosa') {
+  const respuesta = await api().post(`/api/v1/mesas/${codigoQr}/comensales`).send({ nombre }).expect(201);
   return respuesta.body.token;
 }
 
