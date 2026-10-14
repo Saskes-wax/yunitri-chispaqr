@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#221a13">
+  <title>Cocina · Recreo Chispa</title>
+  <link rel="icon" href="/compartido/icono.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/compartido/estilos.css">
+  <link rel="stylesheet" href="/compartido/personal.css">
+  <link rel="stylesheet" href="/cocina/cocina.css">
+  <script type="module" src="/cocina/cocina.js"></script>
+</head>
+<body class="pizarra">
+  <a class="saltar" href="#principal">Ir al contenido</a>
+  <main id="principal" class="tablero">
+    <div id="aviso-cocina" hidden></div>
+    <div class="tablero tablero--dos-columnas tablero--sin-margen">
+      <section class="tablero__columna" aria-labelledby="titulo-por-empezar">
+        <h2 id="titulo-por-empezar">Por empezar <span id="contador-pagados" class="contador">0</span></h2>
+        <div id="lista-pagados" class="pila"><p class="cargando">Cargando…</p></div>
+      </section>
+      <section class="tablero__columna" aria-labelledby="titulo-preparando">
+        <h2 id="titulo-preparando">En preparación <span id="contador-preparando" class="contador">0</span></h2>
+        <div id="lista-preparando" class="pila"><p class="cargando">Cargando…</p></div>
+      </section>
+    </div>
+
+    <details id="panel-agotados" class="tarjeta agotados">
+      <summary>Platos agotados</summary>
+      <p class="agotados__ayuda">Toca un plato para marcarlo como agotado. Deja de aparecer en la carta al instante.</p>
+      <div id="lista-productos" class="agotados__lista"></div>
+    </details>
+  </main>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#26190f" media="(prefers-color-scheme: dark)">
+  <title>Mozo · Recreo Chispa</title>
+  <link rel="icon" href="/compartido/icono.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/compartido/estilos.css">
+  <link rel="stylesheet" href="/compartido/personal.css">
+  <script type="module" src="/mozo/mozo.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#principal">Ir al contenido</a>
+  <main id="principal" class="tablero">
+    <section class="tablero__columna" aria-labelledby="titulo-listos">
+      <h2 id="titulo-listos">Listos para llevar <span id="contador-listos" class="contador">0</span></h2>
+      <div id="aviso-mozo" hidden></div>
+      <div id="lista-listos" class="pila"><p class="cargando">Cargando…</p></div>
+    </section>
+  </main>
+</body>
+</html>
